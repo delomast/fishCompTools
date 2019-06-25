@@ -19,10 +19,6 @@
 run_time_graph <- function(windowData = NULL, Run = "output", dailyCountFile = NULL, makePlot = FALSE)
 
 {
-	### load ggplot2 if plots are requested
-	if(makePlot){
-		library(ggplot2)
-	}
 
 	### function to make plots
 	make_plot <- function(count_data, name){
@@ -83,10 +79,10 @@ run_time_graph <- function(windowData = NULL, Run = "output", dailyCountFile = N
 		plot_data[,2:6] <- apply(plot_data[2:6], 2, as.numeric)
 		colnames(plot_data) <- c("Group", "p1", "p2", "p3", "p4", "p5")
 		#plot
-		plot_made <- ggplot(plot_data, aes(Group)) +
+		plot_made <- ggplot2::ggplot(plot_data, aes(Group)) +
 				geom_boxplot(aes(lower=p2, upper=p4, middle=p3, ymin =p1, ymax=p5), stat = "identity") +
 				coord_flip() + ylab("timestep") + xlab("group") + scale_y_continuous(breaks = seq(min(days), max(days), by = round(max(days)/15)))
-		ggsave(filename = paste0(name, ".pdf"), plot = plot_made, device = "pdf", units = "cm", height = (nrow(plot_data)*3.8) + 4, width = 16.5, limitsize = F)
+		ggplot2::ggsave(filename = paste0(name, ".pdf"), plot = plot_made, device = "pdf", units = "cm", height = (nrow(plot_data)*3.8) + 4, width = 16.5, limitsize = F)
 	}
 
 	#load daily counts
