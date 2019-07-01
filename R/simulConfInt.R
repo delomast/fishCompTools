@@ -37,16 +37,16 @@ simulConfInt <- function(data, alpha){
 	final_ranks <- ((B + 1) / 2) + (max_rank * max_sign)
 
 	half_alph <- alpha / 2
-	lower <- round(B * (1 - half_alph), 0)
-	upper <- round(B * half_alph, 0)
-	if (upper == 0){upper <- 1} #prevent accessing the 0th rank, may happen when bootstrap iterations are too small
+	upBound <- round(B * (1 - half_alph), 0)
+	lowBound <- round(B * half_alph, 0)
+	if (lowBound == 0){lowBound <- 1} #prevent accessing the 0th rank, may happen when bootstrap iterations are too small
 	sorted <- sort(final_ranks)
-	upper <- sorted[upper]
-	lower <- sorted[lower]
+	lowBound <- sorted[lowBound]
+	upBound <- sorted[upBound]
 
 	cis <- apply(data, 2, function(x){
 		sorted <- sort(x)
-		return(c(sorted[upper], sorted[lower]))
+		return(c(sorted[lowBound], sorted[upBound]))
 	})
 
 	return(t(cis))
