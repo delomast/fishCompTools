@@ -98,7 +98,7 @@ marginalize_SD <- function(estimatesFile = NA, bootHier = NA, marginalize = "Gen
 
 		# calculate CIs
 		#one less column, will stitch on categories at end
-		sim_ci_hier <- SCSrank(t(bootDataMarginal), 1-(alph/2))$conf.int
+		sim_ci_hier <- simulConfInt(t(bootDataMarginal), alph)
 		CI_hier <- matrix(nrow = nrow(bootDataMarginal), ncol = 7)
 		colnames(CI_hier) <- c("Estimate", paste0("Lower_(", alph/2, ")"), paste0("Upper_(", 1-(alph/2), ")"), "Percen_half_width", "Lower_simul", "Upper_simul", "Percen_half_width_simul")
 		col_index <- ncol(totals_for_run)
