@@ -3,6 +3,12 @@
 ### alpha is the alpha value desired for the CI
 ### currently, it only calculates two-sided CIs
 ### output is a matrix with each row a variable, first column the lower, and second column the upper CI
+### note that it can give incorrect outputs for HNC and W if bootstrap iterations are too small (less than 10000)
+### and particularly if no clipped fish are present
+### this is because HNc adn Ware dependent, so ranks will be the same but opposite signs
+### signs are given randomly in ties with different signs, so need a large amount of bootstrap iterations
+### to converge on appropriate simultaneous interval (which is the same as the one-at-a-time interval under
+### particular conditions of no phystags and no clipped fish)
 
 simulConfInt <- function(data, alpha){
 
