@@ -191,11 +191,12 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 	for(i in 1:nrow(WinData)){ # for each strata
 		# first AD vs AI
 		clip_boot <- rbinom(B, save_for_boot_h_hnc_w[i,1], save_for_boot_h_hnc_w[i,2]) # this is number of clipped "observed" in each B
+		boot_num_AI <- save_for_boot_h_hnc_w[i,1] - clip_boot # this is the number AI "observed" in each B
 		# second phystag vs not
 		phystag_boot <- rbinom(B, save_for_boot_h_hnc_w[i,4], save_for_boot_h_hnc_w[i,5]) # this is nmber of phystag fish "observed" in each B
-		# expand phystag to account for NAs in phystag observations
-		exp_HNC_boot <- phystag_boot / save_for_boot_h_hnc_w[i,3] # this is expanded number of HNC "trapped" fish
-		exp_w_boot <- (save_for_boot_h_hnc_w[i,4] / save_for_boot_h_hnc_w[i,3]) - exp_HNC_boot # this is the expanded number of W "trapped" fish
+		# expand phystag to apply to all AI "observed" in each B
+		exp_HNC_boot <- boot_num_AI * (phystag_boot / save_for_boot_h_hnc_w[i,4]) # this is expanded number of HNC "trapped" fish
+		exp_w_boot <- boot_num_AI - exp_HNC_boot # this is the expanded number of W "trapped" fish
 		# calculate proportions
 		prop_clip <- clip_boot / save_for_boot_h_hnc_w[i,1]
 		prop_HNC <- exp_HNC_boot / save_for_boot_h_hnc_w[i,1]
