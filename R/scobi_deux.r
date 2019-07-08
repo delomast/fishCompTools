@@ -140,6 +140,13 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 	rm(Windata)  # save memory, new window data has capital D
 	rm(Fishdata) #  save memory, new fish data has capital D
 
+	# check PhysTag column to make sure all values are recognized
+	checkInput <- unique(FishData[!is.na(FishData[,physTagsVariable]), physTagsVariable])
+	if (sum(!(checkInput %in% c("tag", "notag"))) > 0){
+		errorMessage <- paste0("Unrecognized entry \"", checkInput[!(checkInput %in% c("tag", "notag"))], "\" in the physTagsVariable column.")
+		stop(errorMessage)
+	}
+
 
 	#check that all PBT assigned groups are in the tag rate file
 	if("Unassigned" %in% pbtRate[,1]){
