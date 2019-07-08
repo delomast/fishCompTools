@@ -24,11 +24,7 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 	} else {
 		Windata <- windowData
 	}
-	if (is.character(pbtRates)){
-		pbtRate <- read.csv(file = pbtRates, header = TRUE, stringsAsFactors = FALSE)
-	} else {
-		pbtRate <- pbtRates
-	}
+
 
 	collaps <- Windata[,3]
 
@@ -85,6 +81,13 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 	rm(Windata)  # save memory, new window data has capital D
 	rm(Fishdata) #  save memory, new fish data has capital D
 
+	# check PhysTag column to make sure all values are recognized
+	checkInput <- unique(FishData[!is.na(FishData[,physTagsVariable]), physTagsVariable])
+	if (sum(!(checkInput %in% c("tag", "notag"))) > 0){
+		errorMessage <- paste0("Unrecognized entry \"", checkInput[!(checkInput %in% c("tag", "notag"))], "\" in the physTagsVariable column.")
+		stop(errorMessage)
+	}
+
 	# estimate number of H, HNC, and W
 	# clip variable determines H vs (HNC + W)
 	# phystag variable determines HNC vs W and assumes tagging and detection rates of phystags is 100%
@@ -105,16 +108,33 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 	colnames(h_hnc_w_estimates) <- c("strata", "clipped_hatchery", "unclipped_hatchery", "wild")
 	h_hnc_w_estimates[,1] <- WinData[,1]
 
+	#save some information for bootstrapping
+	save_for_boot_h_hnc_w <- matrix(nrow = nrow(WinData), ncol = 5) #rows are strata
+	colnames(save_for_boot_h_hnc_w) <- c("numADAI", "propAD", "propAIAndTagInfo", "numTagInfo", "propTag") #column names to help debug
+
 	#for each strata
 	for(i in 1:nrow(h_hnc_w_estimates)){
 		prop_all_data <- FishData[FishData$Strata == h_hnc_w_estimates[i,1],]
+		save_for_boot_h_hnc_w[i,1] <- nrow(prop_all_data) #save number of fish with ad-clip status
 		#calculate number clipped
 		clip_count <- sum(prop_all_data[,adClipVariable] == "AD")
+		save_for_boot_h_hnc_w[i,2] <- clip_count / save_for_boot_h_hnc_w[i,1] #save proportion that are clipped
 
 		#unclipped only data
 		ai_data <- prop_all_data[prop_all_data[,adClipVariable] == "AI",]
 		# calculate total number unclipped
 		aiCount <- nrow(ai_data)
+
+		if(aiCount == 0){ #if no unclipped fish, set all to zero
+			save_for_boot_h_hnc_w[i,3] <- 0 #save prop of AI with phystag Info
+			save_for_boot_h_hnc_w[i,4] <- 0 #save number of AI with phystag Info
+			save_for_boot_h_hnc_w[i,5] <- 0 #save prop of AI that are HNC (tagged)
+
+			h_hnc_w_estimates[i,2] <- 1 #clip proportion is 1 - all fish
+			h_hnc_w_estimates[i,3] <- 0
+			h_hnc_w_estimates[i,4] <- 0
+			rm(ai_data)
+		}
 
 		#calculate number HNC and wild, if possible
 		if(aiCount > 0 && sum(!is.na(ai_data[,physTagsVariable])) == 0){
@@ -127,6 +147,11 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 		phystag_count <- sum(!is.na(ai_data[,physTagsVariable]) & ai_data[,physTagsVariable] == "tag")
 		#calculate number AI without phys tag - these are considered W
 		noPhystag_count <- sum(!is.na(ai_data[,physTagsVariable]) & ai_data[,physTagsVariable] == "notag")
+
+		save_for_boot_h_hnc_w[i,3] <- (phystag_count + noPhystag_count) / aiCount #save prop of AI with phystag Info
+		save_for_boot_h_hnc_w[i,4] <- (phystag_count + noPhystag_count) #save number of AI with phystag Info
+		save_for_boot_h_hnc_w[i,5] <- phystag_count / (phystag_count + noPhystag_count) #save prop of AI that are HNC (tagged)
+
 		# expand to account for fish with missing phys tag information
 		phystag_count <- aiCount * (phystag_count / (phystag_count + noPhystag_count)) #denom can't be zero b/c if all NA, assume all wild
 		noPhystag_count <- aiCount - phystag_count
@@ -159,9 +184,44 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 
 
 
-
 	# now bootstrap to obtain CIs
+	#H, HNC, and W
+	boot_h_hnc_w <- matrix(data = 0, nrow = B, ncol = 3) #storage for bootstrap counts, this is total for the whole run, so adding each strata to is as calculated
+	colnames(boot_h_hnc_w) <- c("h", "hnc", "w")
+	for(i in 1:nrow(WinData)){ # for each strata
+		# first AD vs AI
+		clip_boot <- rbinom(B, save_for_boot_h_hnc_w[i,1], save_for_boot_h_hnc_w[i,2]) # this is number of clipped "observed" in each B
+		# second phystag vs not
+		phystag_boot <- rbinom(B, save_for_boot_h_hnc_w[i,4], save_for_boot_h_hnc_w[i,5]) # this is nmber of phystag fish "observed" in each B
+		# expand phystag to account for NAs in phystag observations
+		exp_HNC_boot <- phystag_boot / save_for_boot_h_hnc_w[i,3] # this is expanded number of HNC "trapped" fish
+		exp_w_boot <- (save_for_boot_h_hnc_w[i,4] / save_for_boot_h_hnc_w[i,3]) - exp_HNC_boot # this is the expanded number of W "trapped" fish
+		# calculate proportions
+		prop_clip <- clip_boot / save_for_boot_h_hnc_w[i,1]
+		prop_HNC <- exp_HNC_boot / save_for_boot_h_hnc_w[i,1]
+		prop_W <- exp_w_boot / save_for_boot_h_hnc_w[i,1]
+		# multply by window count and add to running total
+		boot_h_hnc_w[,1] <- boot_h_hnc_w[,1] + (prop_clip * WinData[i,2])
+		boot_h_hnc_w[,2] <- boot_h_hnc_w[,2] + (prop_HNC * WinData[i,2])
+		boot_h_hnc_w[,3] <- boot_h_hnc_w[,3] + (prop_W * WinData[i,2])
+	}
+	#make output matrix and write to file
+	CI_h_hnc_w <- matrix(nrow = 3, ncol = 8)
+	colnames(CI_h_hnc_w) <- c("Group", "Estimate", paste0("Lower_(", alph/2, ")"), paste0("Upper_(", 1-(alph/2), ")"), "Percen_half_width", "Lower_simul", "Upper_simul", "Percen_half_width_simul")
+	CI_h_hnc_w[,1] <- c("clipped_hatchery", "unclipped_hatchery", "wild")
 
+	sim_ci <- simulConfInt(boot_h_hnc_w, alph) #calculate simultaneous CIs
+
+	for(i in 1:3){
+		CI_h_hnc_w[i,2] <- category_totals[i]
+		CI_h_hnc_w[i,3:4] <- quantile(boot_h_hnc_w[,i],c(alph/2, 1-(alph/2)))
+		CI_h_hnc_w[i,5] <- round(100 * ( (as.numeric(CI_h_hnc_w[i,4]) - as.numeric(CI_h_hnc_w[i,3]) )/ (category_totals[i]*2)),2)
+		CI_h_hnc_w[i,6] <- sim_ci[i,1]
+		CI_h_hnc_w[i,7] <- sim_ci[i,2]
+		CI_h_hnc_w[i,8] <- round(100 * ( (sim_ci[i,2] - sim_ci[i,1] )/ (category_totals[i]*2)),2)
+	}
+
+	write.table(CI_h_hnc_w, paste0(Run, "_CI_Rearing.txt"), sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
 
 
 
