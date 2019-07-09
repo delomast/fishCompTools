@@ -70,7 +70,7 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 		Windata  <- read.csv(file = windowData, header = TRUE, stringsAsFactors = FALSE)
 	} else {
 		Windata <- windowData
-		rm(WindowData)
+		rm(windowData)
 	}
 	if (is.character(pbtRates)){
 		pbtRate <- read.csv(file = pbtRates, header = TRUE, stringsAsFactors = FALSE)
@@ -365,6 +365,15 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 				names(unique_categories) <- c(column_cats)
 			} else {
 				unique_categories <- apply(func_hierarch_data[,column_cats],2,unique)	# get lists of all unique categories for each variable in this analysis, combinations will be the entries for each strata in the output
+				# if in rare case all column_cats have the same number of categories, a matrix is returned
+				# it must be turned into a list for later functionality
+				if(!is.list(unique_categories)){
+					unique_categoriesMatrix <- unique_categories
+					unique_categories <- list()
+					for(i in 1:ncol(unique_categoriesMatrix)){
+						unique_categories[[colnames(unique_categoriesMatrix)[i]]] <- unique_categoriesMatrix[,i]
+					}
+				}
 			}
 
 			hierarch_estimates <- as.data.frame(matrix(nrow = 0, ncol = (length(column_cats) + 2)))	## this will have columns for: strata, categories, proportion of each type trapped
