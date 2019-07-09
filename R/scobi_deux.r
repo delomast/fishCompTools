@@ -64,11 +64,13 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 		Fishdata <- read.csv(file = adultData, header = TRUE, na.strings = c("NA",""), stringsAsFactors = FALSE)
 	} else {
 		Fishdata <- adultData
+		rm(adultData) # remove in case passed as a dataframe and is large
 	}
 	if (is.character(windowData)){
 		Windata  <- read.csv(file = windowData, header = TRUE, stringsAsFactors = FALSE)
 	} else {
 		Windata <- windowData
+		rm(WindowData)
 	}
 	if (is.character(pbtRates)){
 		pbtRate <- read.csv(file = pbtRates, header = TRUE, stringsAsFactors = FALSE)

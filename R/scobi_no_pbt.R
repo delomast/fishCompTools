@@ -24,6 +24,8 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 	} else {
 		Windata <- windowData
 	}
+	rm(adultData) # remove in case passed as a dataframe and is large
+	rm(WindowData)
 
 
 	collaps <- Windata[,3]
