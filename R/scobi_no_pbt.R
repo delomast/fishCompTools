@@ -270,6 +270,7 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 				#make sure there is data
 				if(nrow(strata_data) == 0){
 					cat("\nWarning. No fish with complete data for factors", column_cats, "in strata", s, "\n Using the mean proportions of the entire run for this strata.\n")
+					cat("This will cause an error during bootstrapping. Please consider combining this strata with an adjacent strata.\n")
 					replace_NA <- TRUE
 					#write all NA as temporary measure to be fixed at the end
 					#build matrix with all combinations of variables
