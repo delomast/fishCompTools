@@ -465,6 +465,13 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 			hier_boot_type_total[i,] <- (prop_W * WinData[i,2])
 		}
 	}
+
+	#write bootstrap estimates
+	if (writeBoot){
+		write.table(boot_h_hnc_w, paste0(Run, "_Boot_Rear.txt"),
+				  sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
+	}
+
 	#make output matrix and write to file
 	CI_h_hnc_w <- matrix(nrow = 3, ncol = 8)
 	colnames(CI_h_hnc_w) <- c("Group", "Estimate", paste0("Lower_(", alph/2, ")"), paste0("Upper_(", 1-(alph/2), ")"), "Percen_half_width", "Lower_simul", "Upper_simul", "Percen_half_width_simul")
@@ -543,6 +550,13 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 
 		#now calculate and write out CIs
 		for(i in 1:length(bootHier)){
+
+			#write bootstrap estimates
+			if (writeBoot){
+				write.table(bootHier[[i]], paste0(Run, "_Boot_Hier_", names(hierarch_output_list)[i], ".txt"),
+						  sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
+			}
+
 			#one less column, will stitch on categories at end
 			sim_ci_hier <- simulConfInt(t(bootHier[[i]]), alph)
 			CI_hier <- matrix(nrow = nrow(bootHier[[i]]), ncol = 7)
