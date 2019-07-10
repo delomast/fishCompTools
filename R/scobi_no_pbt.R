@@ -38,7 +38,7 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 	u_collaps <- sort(unique(collaps)) # These are the strata used for the analysis
 	WinCounts <- c()
 	for(i in u_collaps){
-		WinCounts <- c(WinCounts, sum(Windata[Windata[,3] == i,2]))
+		WinCounts <- c(WinCounts, sum(as.numeric(Windata[Windata[,3] == i,2])))
 	}
 	WinData <- data.frame(u_collaps,WinCounts) # This is the window data reduced to strata defined by collaps
 
@@ -154,6 +154,7 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 			cat("Warning. No AI fish with data for", physTagsVariable, "in strata", h_hnc_w_estimates[i,1], "\n")
 			cat("Assuming all fish in this strata are wild.\n")
 			ai_data[,physTagsVariable] <- "notag"
+			FishData[FishData$Strata == h_hnc_w_estimates[i,1],physTagsVariable] <- "notag" #make change for full dataset that will be used for Hierarchical variables
 		}
 
 		# calculate number AI with physical tag - these are considered HNC

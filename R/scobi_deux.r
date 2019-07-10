@@ -97,7 +97,7 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 	u_collaps <- sort(unique(collaps)) # These are the strata used for the analysis
 	WinCounts <- c()
 	for(i in u_collaps){
-		WinCounts <- c(WinCounts, sum(Windata[Windata[,3] == i,2]))
+		WinCounts <- c(WinCounts, sum(as.numeric(Windata[Windata[,3] == i,2])))
 	}
 	WinData <- data.frame(u_collaps,WinCounts) # This is the window data reduced to strata defined by collaps
 
