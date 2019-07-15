@@ -3,3 +3,4 @@
 export(SCOBI_deux)
 export(marginalize_SD)
 export(run_time_graph)
+export(scobiNoPBT)
