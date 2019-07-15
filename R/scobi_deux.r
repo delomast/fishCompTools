@@ -554,12 +554,20 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 							stop("The PBT group is a variable in your Hierarchical variables list, but the group of interest is not \"clipped\" or \"noclip_H\".")
 						}
 						assigned_data_categories <- assigned_data[, colnames(categories_to_sum)]
-						if(length(dim(assigned_data_categories)) < 2){ ## sometimes only one category present
+						if(length(dim(assigned_data_categories)) < 2){
+							if(length(colnames(categories_to_sum)) > 1){ ## multiple variables, one category present
 								assigned_data_categories <- t(as.matrix(assigned_data_categories))
+							} else { # one variable
+								assigned_data_categories <- as.matrix(assigned_data_categories)
+							}
 						}
 						temp_output_categories <- temp_output[, colnames(categories_to_sum)]
-						if(length(dim(temp_output_categories)) < 2){ ## sometimes only one category present
+						if(length(dim(temp_output_categories)) < 2){
+							if(length(colnames(categories_to_sum)) > 1){ ## multiple variables, one category present
 								temp_output_categories <- t(as.matrix(temp_output_categories))
+							} else { # one variable
+								temp_output_categories <- as.matrix(temp_output_categories)
+							}
 						}
 						for (i in 1:nrow(categories_to_sum)){
 							bool_temp <- find_matching_rows(assigned_data_categories, categories_to_sum[i,])
