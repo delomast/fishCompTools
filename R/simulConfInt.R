@@ -13,7 +13,7 @@
 simulConfInt <- function(data, alpha){
 
 	# order based on each variable
-	indiv_ranks <- apply(data, 2, rank)
+	indiv_ranks <- apply(data, 2, rank, ties.method= "random")
 
 	# calculate relative ranks
 	B <- nrow(indiv_ranks) # number of bootstrap iterations, used multiple times below
