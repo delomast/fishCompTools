@@ -7,8 +7,7 @@
 #'
 #' @return something
 #' @export
-#'
-#'
+
 scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYPE = "wild", Hierarch_variables = NULL,
                   SizeCut = NULL, alph = 0.1, B = 5000, writeBoot = FALSE, adClipVariable = "AdClip",
 				physTagsVariable = "PhysTag", lengthVariable = "LGDFLmm", dataGroupVariable = "WeekNumber"){
