@@ -536,14 +536,28 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 						if (func_RTYPE == "clipped"){
 							assigned_data <- temp_output[temp_output[,func_pbtGroupVariable] != "Unassigned", ]
 							assigned_data2 <- temp_output_2[temp_output_2[,func_pbtGroupVariable] != "Unassigned", ]
+							if(length(dim(assigned_data)) < 2){ ## sometimes only one category present
+								assigned_data <- t(as.matrix(assigned_data))
+								assigned_data2 <- t(as.matrix(assigned_data2))
+							}
 						} else if (func_RTYPE == "noclip_H"){
 							assigned_data <- temp_output_3[temp_output_3[,func_pbtGroupVariable] != "Unassigned", ]
 							assigned_data2 <- temp_output_4[temp_output_4[,func_pbtGroupVariable] != "Unassigned", ]
+							if(length(dim(assigned_data)) < 2){ ## sometimes only one category present
+								assigned_data <- t(as.matrix(assigned_data))
+								assigned_data2 <- t(as.matrix(assigned_data2))
+							}
 						} else {
 							stop("The PBT group is a variable in your Hierarchical variables list, but the group of interest is not \"clipped\" or \"noclip_H\".")
 						}
-						assigned_data_categories <- as.matrix(assigned_data[, colnames(categories_to_sum)])
-						temp_output_categories <- as.matrix(temp_output[, colnames(categories_to_sum)])
+						assigned_data_categories <- assigned_data[, colnames(categories_to_sum)]
+						if(length(dim(assigned_data_categories)) < 2){ ## sometimes only one category present
+								assigned_data_categories <- t(as.matrix(assigned_data_categories))
+						}
+						temp_output_categories <- temp_output[, colnames(categories_to_sum)]
+						if(length(dim(temp_output_categories)) < 2){ ## sometimes only one category present
+								temp_output_categories <- t(as.matrix(temp_output_categories))
+						}
 						for (i in 1:nrow(categories_to_sum)){
 							bool_temp <- find_matching_rows(assigned_data_categories, categories_to_sum[i,])
 							num_expanded <- sum(as.numeric(assigned_data[bool_temp, col_num])) - sum(as.numeric(assigned_data2[bool_temp, col_num])) #number of untagged fish accounted for by expansion
