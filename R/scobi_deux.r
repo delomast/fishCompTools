@@ -536,9 +536,17 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 						if (func_RTYPE == "clipped"){
 							assigned_data <- temp_output[temp_output[,func_pbtGroupVariable] != "Unassigned", ]
 							assigned_data2 <- temp_output_2[temp_output_2[,func_pbtGroupVariable] != "Unassigned", ]
+							if(length(dim(assigned_data)) < 2){ ## sometimes only one category present
+								assigned_data <- t(as.matrix(assigned_data))
+								assigned_data2 <- t(as.matrix(assigned_data2))
+							}
 						} else if (func_RTYPE == "noclip_H"){
 							assigned_data <- temp_output_3[temp_output_3[,func_pbtGroupVariable] != "Unassigned", ]
 							assigned_data2 <- temp_output_4[temp_output_4[,func_pbtGroupVariable] != "Unassigned", ]
+							if(length(dim(assigned_data)) < 2){ ## sometimes only one category present
+								assigned_data <- t(as.matrix(assigned_data))
+								assigned_data2 <- t(as.matrix(assigned_data2))
+							}
 						} else {
 							stop("The PBT group is a variable in your Hierarchical variables list, but the group of interest is not \"clipped\" or \"noclip_H\".")
 						}
