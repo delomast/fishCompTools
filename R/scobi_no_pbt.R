@@ -253,6 +253,9 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 				# if in rare case all column_cats have the same number of categories, a matrix is returned
 				# it must be turned into a list for later functionality
 				if(!is.list(unique_categories)){
+					if(length(dim(unique_categories)) < 2){ # in some cases only one category, so a vector is returned
+						unique_categories <- t(as.matrix(unique_categories))
+					}
 					unique_categoriesMatrix <- unique_categories
 					unique_categories <- list()
 					for(i in 1:ncol(unique_categoriesMatrix)){
