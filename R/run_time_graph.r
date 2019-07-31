@@ -1,19 +1,20 @@
-#Making run-timing graphs from output of Scobi-Deux
-#########	inputs
-# windowData is window count data
-# Run is prefix for output files used in the Scobi-Deux run you want to generate daily counts for
-#		NOTE: the output files must be in the working directory
-# dailyCountFile is the path to a csv file that has a list of counts for the days (or other timestep) that is your basic
-# 		unit for graphing. This csv should have two columns, the first column is the strata (matching the strata in your
-#		window count file) for that day and the second column is the count on that day. Each consecutive day should be a
-#		new row with the first day being the first row and the last day being the last row. Strata will be repeated once for
-#		each day within that strata with the count for that particular day
-#NOTE: this function assumes that proportions or fish of each type are constant within each strata
-#		it is not meant to be a particularly robust method of looking at run timing, rather it is for exploratory use
-#Example syntax to call the function
-#
-# run_time_graph(windowData = "HNC_clip_window.csv",, Run = "output", dailyCountFile = "daily_TD.csv")
-
+#' Making run-timing graphs from output of \code{SCOBI_deux}
+#'
+#' This function assumes that proportions or fish of each type are constant within each strata
+#' it is not meant to be a particularly robust method of looking at run timing, rather it is for exploratory use
+#'
+#' description2
+#'
+#' @param windowData This is the exact same \code{windowData} input that you used when you ran \code{SCOBI_deux}.
+#' @param Run This is the exact same input for \code{Run} you used when you ran \code{SCOBI_deux}. The function looks
+#'  for files with this prefix in the working directory to use to make the graph.
+#' @param dailyCountFile This either a dataframe or it is the path to a csv file that has a list of counts for the days
+#'  (or other timestep) that is your basic
+#'  unit for graphing. This csv should have two columns, the first column is the group (matching the group - leftmost column - in your
+#'  window count file) for that day and the second column is the count on that day. Each consecutive day should be a
+#'  new row with the first day being the first row and the last day being the last row. The group will be repeated once for
+#'  each day within that group with the count for that particular day.
+#' @param makePlot If TRUE, a pdf will be saved in the working directory of a run timing plot.
 #' @export
 
 run_time_graph <- function(windowData = NULL, Run = "output", dailyCountFile = NULL, makePlot = FALSE)
@@ -86,9 +87,21 @@ run_time_graph <- function(windowData = NULL, Run = "output", dailyCountFile = N
 	}
 
 	#load daily counts
-	daily_counts <- read.csv(dailyCountFile)
+	if (is.character(dailyCountFile)){
+		daily_counts <- read.csv(dailyCountFile, header = TRUE, stringsAsFactors = FALSE)
+	} else {
+		daily_counts <- dailyCountFile
+		rm(dailyCountFile) # remove in case passed as a dataframe and is large
+	}
+
+
 	#strata collapsing
-	Windata <- read.csv(windowData)
+	if (is.character(windowData)){
+		Windata  <- read.csv(file = windowData, header = TRUE, stringsAsFactors = FALSE)
+	} else {
+		Windata <- windowData
+		rm(windowData)
+	}
 	for(i in 1:nrow(Windata)){
 		daily_counts[daily_counts[,1] == Windata[i,1],1] <- Windata[i,3]
 	}
