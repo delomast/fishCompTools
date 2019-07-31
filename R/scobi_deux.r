@@ -28,7 +28,7 @@
 #'  to this value will be put into a "Large" category. This is intended for easy analysis of jacks or
 #'  large and small steelhead.
 #' @param alph This is the alpha value to use for confidence intervals. So, an alph of .05 will give a
-#'  95% CI, with quantiles at .025 and .975.
+#'  95\% CI, with quantiles at .025 and .975.
 #' @param B This is the number of bootstrap iteratiosn to perform. To skip bootstraping and only produce
 #'  point estiamtes, use a value of 0.
 #' @param writeBoot If \code{TRUE}, the values for each bootstrap iteration will be written.
