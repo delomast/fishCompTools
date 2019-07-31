@@ -82,6 +82,13 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 	rm(Windata)  # save memory, new window data has capital D
 	rm(Fishdata) #  save memory, new fish data has capital D
 
+	# check adClipVariable column to make sure all values are recognized
+	checkInput <- unique(FishData[!is.na(FishData[,adClipVariable]), adClipVariable])
+	if (sum(!(checkInput %in% c("AD", "AI"))) > 0){
+		errorMessage <- paste0("Unrecognized entry \"", checkInput[!(checkInput %in% c("AD", "AI"))], "\" in the adClipVariable column.")
+		stop(errorMessage)
+	}
+
 	# check PhysTag column to make sure all values are recognized
 	checkInput <- unique(FishData[!is.na(FishData[,physTagsVariable]), physTagsVariable])
 	if (sum(!(checkInput %in% c("tag", "notag"))) > 0){

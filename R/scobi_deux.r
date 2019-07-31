@@ -10,49 +10,56 @@
 #' ...
 #' ...
 #'
-#' @param adultData
-#' @param windowData
-#' @param Run
-#' @param RTYPE
-#' @param Hierarch_variables
-#' @param lengthVariable
-#' @param SizeCut
-#' @param alph
-#' @param B
-#' @param writeBoot
-#' @param pbtRates
-#' @param adClipVariable
-#' @param physTagsVariable
-#' @param pbtGroupVariable
-#' @param screenOutput
-#' @param spibetr
+#' @param adultData This is the detailed dataset that is used to determine composition. In
+#'  dam escapement, this is the "trap" data. It can either be a dataframe or the path to a
+#'  csv file with a header.
+#' @param windowData This is the dataset that gives the census numbers for each group (such
+#'  as time period or location). In dam escapement, this is the "window count" dataset.
+#'  It can either be a dataframe or the path to a csv file with a header. Format is ....
+#' @param Run This is a prefix that will be appended to all output files.
+#' @param RTYPE This is the type of fish that you want to analyze for the \code{Hierarch_variables}.
+#'  Options are: "clipped", "noclip_H", "wild", representing Ad-clipped hatchery, Ad-intact
+#'  hatchery, and wild fish, respectively.
+#' @param Hierarch_variables These are the variables (column names in \code{adultData}) that you
+#'  want to assess RTYPE for in the order you want them to be assessed.
+#' @param lengthVariable If you are usign the SizeCut option, this is the variable that has the
+#'  numeric lengths.
+#' @param SizeCut Fish less than this value will be put into a "Small" category, and fish greater or equal
+#'  to this value will be put into a "Large" category. This is intended for easy analysis of jacks or
+#'  large and small steelhead.
+#' @param alph This is the alpha value to use for confidence intervals. So, an alph of .05 will give a
+#'  95% CI, with quantiles at .025 and .975.
+#' @param B This is the number of bootstrap iteratiosn to perform. To skip bootstraping and only produce
+#'  point estiamtes, use a value of 0.
+#' @param writeBoot If \code{TRUE}, the values for each bootstrap iteration will be written.
+#' @param pbtRates This is either a dataframe or the path to a csv file with a header. The first
+#'  column contains the names of all the pbtGroupVariable values, and the second column contains their
+#'  respective tag rates.
+#' @param adClipVariable This is the name of the variable that has the ad-clip and ad-intact status of
+#'  all samples. Values in this column shoudl either be "AD" or "AI" for ad-clipped and ad-intact,
+#'  respectively. NA values are considered missing and are removed from the dataset prior to any analysis.
+#' @param physTagsVariable This is the name of the variable that has information on physical tags (such
+#'  as CWTs). Fish with a physical tag that identifies them as hatchery origin should have the value "tag"
+#'  and fish without such a physical tag should have the value "notag". Fish that were not assessed for the
+#'  presence of a physical tag should have the value NA.
+#' @param pbtGroupVariable This is the name of the variable that has the pbt group that a fish assigned to.
+#'  Fish that did not assign to any group should be given the value of "Unassigned". Fish that were not
+#'  assessed with PBT, for example they failed to genotype or were not genotyped, should be given the value
+#'  of NA.
+#' @param lengthVariable This is the name of the variable that has numberic lengths if the SizeCut option
+#'  is being used.
+#' @param dataGroupVariable This is the name of the variable that has the sample group that each sample
+#'  belongs to, with the sample groups matching the groups given in the first column of windowData.
+#' @param screenOutput This is the name of the file to write all output the would otherwise be printed to
+#'  the console. If not specified, output is printed to the console.
+#' @param spibetr If this is \code{TRUE}, then the composition estimates of the wild fish will be corrected
+#'  to account for the expected number and composition of the unclipped, untagged hatchery fish present in
+#'  the wild sample.
 #' @return A string is returned simply stating that the analysis is complete. All of
 #' the output of the function is written to the working directory. These files are:
 #' ....
 #' ....
 #' ....
-#Scobi-Deux
-#re-write of SCOBI to allow more functionality and more flexible usage
-#Main new addition is reduction of W category based on PBT expansion and
-#incorporation of spibetr process for correcting GSI estimates - planned, not complete yet
-#########	inputs
-# adultData is trap data
-# windowData is window count data
-# Run is prefix for output files
-# RTYPE is group of interst, either "clipped" for clipped hatchery, "noclip_H" for unclipped hatchery, or "wild" for wild
-# Hierarch_variables are categories to estiamte adn calculate CIs for, with order meaning subcategories
-# SizeCut is border between large and small categories in lengthVariable is one of the Hierarch_variables
-# lengthVariable is a variable separated in to two categories based on sizeCut (previously LGDFLmm)
-# alph is alpha value for CIs
-# B is number of bootstrap iterations
-# writeBoot is TRUE or FALSE for whether to write individual estimates for each bootstrap iteration
-# pbtRates is csv file with a header (colnames don't matter), containing pbtGroup,tagRate with one group per line
-# adClipVariable is variable that specifies if a fish is adclipped of not with values of "AD" for clipped, "AI" for intact, and NA for unknown
-# physTagsVariable is variable that specifies if a fish has a physical tag, regardless of ad-clip stats, indicating it is of hatchery origin (ie a CWT) with values of "tag" for tagged, "notag" for not tagged, and NA for unknown
-# pbtGroupVariable is variable in adultData file that is the pbt groups assigned, with tag rates specified in pbtRates, unassigned
-		#fish are given values of "Unassigned", NA is for fish not analyzed with PBT (for example, if they failed genotyping)
-# screenOutput is the file name you want to save the onscreen output to. If NULL, output is printed on console
-# spibetr is the correction of wild Hierarch_variables estimates for untagged HNC composition
 #' @export
 
 SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYPE = "wild", Hierarch_variables = NULL,
@@ -142,6 +149,13 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 	rm(Windata)  # save memory, new window data has capital D
 	rm(Fishdata) #  save memory, new fish data has capital D
 
+	# check adClipVariable column to make sure all values are recognized
+	checkInput <- unique(FishData[!is.na(FishData[,adClipVariable]), adClipVariable])
+	if (sum(!(checkInput %in% c("AD", "AI"))) > 0){
+		errorMessage <- paste0("Unrecognized entry \"", checkInput[!(checkInput %in% c("AD", "AI"))], "\" in the adClipVariable column.")
+		stop(errorMessage)
+	}
+
 	# check PhysTag column to make sure all values are recognized
 	checkInput <- unique(FishData[!is.na(FishData[,physTagsVariable]), physTagsVariable])
 	if (sum(!(checkInput %in% c("tag", "notag"))) > 0){
@@ -157,6 +171,7 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 		}
 	} else {
 		pbtRate <- rbind(pbtRate, c("Unassigned", 1))	#Add Unassigned with tag rate of 1 to make calculations below simple to code
+		pbtRate[,2] <- as.numeric(pbtRate[,2]) #fix R's automatic switch of column 2 to character
 	}
 
 	pbt_groups <- FishData[,pbtGroupVariable]
