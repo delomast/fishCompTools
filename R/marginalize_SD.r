@@ -1,50 +1,48 @@
-#marginalize_SD
-#marginalize Scobi-Deux
-#This function produces estimates and CIs after marginalizing out a given variable
-#The idea is that it can marginalize the PBTGroup variable to estimate PBT-derived categories
-#		such as PBT-age
-#########	inputs
-# estimatesFile is the Scobi-Deux output "Estim_Totals" or "Estim_Grand_Totals" file that you want to marginalize over
-# bootHier is the "Boot_Hier" file for the corresponding variable in your "Estim_Grand_Totals" file
-# 	Note that use of this option requires that you feed the program the "Estim_Grand_Totals" file, not the "Estim_Totals" file
-# marginalize is the name of the variable you want to marginalize over
-#Example syntax to call the function
-#
-# SCOBI_deux(adultData = "2018RearHNCscobi_TD_no_wk1hnc.csv", windowData = "HNC_clip_window.csv",
-# 		 Run = "noclipApr10", RTYPE = "noclip_H", Hierarch_variables = c("GenParentHatchery", "swAge"),
-#                   SizeCut = NULL, alph = 0.1, B = 0, writeBoot = F, pbtRates = "PBT tag rates.csv",
-# 		 adClipVariable = "AdClip", physTagsVariable = "PhysTag", pbtGroupVariable = "GenParentHatchery",
-#			 screenOutput = "scobi_onscreen.txt")
-
+#' Produce estimates and CIs after marginalizing out a given variable from the output of \code{SCOBI_deux}
+#'
+#' This function requires first running \code{SCOBI_deux} with \code{writeBoot = TRUE}.
+#' An example use is for marginalizing the PBTGroup variable to estimate PBT-derived categories such as PBT-age.
+#'
+#' description2
+#'
+#' @param estimatesFile is the Scobi-Deux output "Estim_Totals" or "Estim_Grand_Totals" file that you
+#'  want to marginalize over.
+#' @param bootHier is the "Boot_Hier" file for the corresponding variable in your "Estim_Grand_Totals" file.
+#'  Note that use of this option requires that you feed the program the "Estim_Grand_Totals" file, not the
+#'  "Estim_Totals" file
+#' @param marginalize is the name of the variable(s) you want to marginalize over. This shoudl be a character
+#'  vector and can have one or multiple values.
+#' @param alph This is the alpha value to use for confidence intervals. So, an alph of .05 will give a
+#'  95\% CI, with quantiles at .025 and .975.
 #' @export
 
 marginalize_SD <- function(estimatesFile = NA, bootHier = NA, marginalize = "GenParentHatchery", alph = 0.1)
 {
-	genCI <- T #boolean of whether to attempt to generate CIs or not
+	genCI <- TRUE #boolean of whether to attempt to generate CIs or not
 	# input error checking
 	if (is.na(estimatesFile)){
 		stop("No estimatesFile given")
 	}
 	if (is.na(bootHier)){
-		cat("\nWarning: No bootHier file given, no CI estimates will be generated\n")
-		genCI <- F
+		warning("Warning: No bootHier file given, no CI estimates will be generated")
+		genCI <- FALSE
 	}
 
 	# load data
-	estimates <- read.table(estimatesFile, sep = "\t", header = T, stringsAsFactors = F)
+	estimates <- read.table(estimatesFile, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
 	if(genCI){
-		bootData <- read.table(bootHier, sep = "\t", header = T, stringsAsFactors = F)
+		bootData <- read.table(bootHier, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
 	}
 
 	# input error checking
 	if (genCI && "Strata" %in% colnames(estimates)){
-		cat("\nWarning: Strata is a column name in your estimate file. Assuming this is an \"Estim_Totals\" file. No CI estimates will be generated\n")
-		genCI <- F
+		warning("Warning: Strata is a column name in your estimate file. Assuming this is an \"Estim_Totals\" file. No CI estimates will be generated.")
+		genCI <- FALSE
 	}
 
 	if (genCI && nrow(bootData) != nrow(estimates)){
-		cat("\nWarning: Your bootData and estimatesFile files have different numbers of rows. Assuming this is an \"Estim_Totals\" file. No CI estimates will be generated\n")
-		genCI <- F
+		warning("Warning: Your bootData and estimatesFile files have different numbers of rows. Assuming this is an \"Estim_Totals\" file. No CI estimates will be generated.")
+		genCI <- FALSE
 	}
 
 	# marginal estimates
@@ -60,21 +58,23 @@ marginalize_SD <- function(estimatesFile = NA, bootHier = NA, marginalize = "Gen
 	#standardize column name for total estimate
 	colnames(estimates)[colnames(estimates) %in% c("Total_number_in_run", "Estimated_total_for_run")] <- "Total_number_in_run"
 	totals_for_run <- rep(-9, nrow(categories_to_sum))
-	exact_match <- ncol(categories_to_sum)
-	bool_list <- matrix(nrow = nrow(estimates), ncol = exact_match)
-	bool_func <- function(x){sum(x) == exact_match}
-	estimates_cats <- as.matrix(estimates[,colnames(categories_to_sum)])
-	for (j in 1:nrow(categories_to_sum)){
-		for(k in 1:exact_match){
-			bool_list[,k] <- (estimates_cats[,k] == categories_to_sum[j,k])
+	estimates_cats <- estimates[,colnames(categories_to_sum)]
+	if(length(dim(estimates_cats)) < 2){ #if it's not a matrix or dataframe
+		if(ncol(categories_to_sum) == 1){#if one category, then it should be a one column matrix
+			estimates_cats <- as.matrix(estimates_cats)
+		} else { #if multiple categories, then there is only one group, so should be a one row matrix
+			estimates_cats <- t(as.matrix(estimates_cats))
 		}
-		bool_temp <- apply(bool_list, 1, bool_func)
+	}
+	for (j in 1:nrow(categories_to_sum)){
+		bool_temp <- find_matching_rows(estimates_cats, unlist(categories_to_sum[j,])) # need to unlist b/c dataframe
 		totals_for_run[j] <- sum(estimates[bool_temp,"Total_number_in_run"])
 	}
+
 	totals_for_run <- cbind(categories_to_sum, totals_for_run)
 
 	# output marginalized totals
-	write.table(totals_for_run, paste0("Marginalized_", marginalize, "_", estimatesFile), col.names = T, row.names = F, quote = F, sep = "\t")
+	write.table(totals_for_run, paste0("Marginalized_", paste(marginalize, collapse = "_"), "_", estimatesFile), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
 
 	# CIs
 	if(genCI){
@@ -82,12 +82,8 @@ marginalize_SD <- function(estimatesFile = NA, bootHier = NA, marginalize = "Gen
 		bootDataMarginal <- matrix(nrow = nrow(categories_to_sum), ncol = ncol(bootData))
 		#order of categories in bootdata is the same as the order in the Grand_Total file
 		# so use the orders from the Grand_Total file to sum tbe bootstrap estimates appropriately
-		bool_list <- matrix(nrow = nrow(estimates), ncol = exact_match)
 		for (j in 1:nrow(categories_to_sum)){
-			for(k in 1:exact_match){
-				bool_list[,k] <- (estimates_cats[,k] == categories_to_sum[j,k])
-			}
-			bool_temp <- apply(bool_list, 1, bool_func)
+			bool_temp <- find_matching_rows(estimates_cats,unlist(categories_to_sum[j,])) # need to unlist b/c dataframe
 			#define temporrary data in case it only has one row and converts to a vector
 			data_temp <- bootData[bool_temp,]
 			if(length(dim(data_temp)) < 2){
@@ -116,7 +112,7 @@ marginalize_SD <- function(estimatesFile = NA, bootHier = NA, marginalize = "Gen
 			colnames(CI_hier)[1] <- colnames(totals_for_run)[1]
 		}
 		# output CIs
-		write.table(CI_hier, paste0("Marginalized_", marginalize, "_CI_", gsub(".+_Hier_", "", estimatesFile)), col.names = T, row.names = F, quote = F, sep = "\t")
+		write.table(CI_hier, paste0("Marginalized_", paste(marginalize, collapse = "_"), "_CI_", gsub(".+_Hier_", "", estimatesFile)), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
 	}
 
 	return("Marginalizing complete")
