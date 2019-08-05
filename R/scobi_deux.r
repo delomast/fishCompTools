@@ -320,12 +320,21 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 	hierarch_data <- FishData
 	#select rearing type of interest(clipped, noclip_h, wild)
 	if (RTYPE == "clipped"){
+		max_expand <- NULL
 		spibetr_data <- NULL
 		hierarch_data <- hierarch_data[hierarch_data[,adClipVariable] == "AD",]
 	} else if (RTYPE == "noclip_H"){
 		spibetr_data <- NULL
 		hierarch_data <- hierarch_data[hierarch_data[,adClipVariable] == "AI" & ((!is.na(hierarch_data[,physTagsVariable]) & hierarch_data[,physTagsVariable] == "tag") | (!is.na(hierarch_data[,pbtGroupVariable]) & hierarch_data[,pbtGroupVariable] != "Unassigned")),]
+		#calculate total number of putatively "wild" fish in each strata so that the algorithm knows how many it can expand the pbt-only fish for
+		max_expand <- matrix(nrow = 0, ncol = 2)
+		for(s in unique(FishData$Strata)){
+			max_expand <- rbind(c( s,
+				sum(FishData$Strata == s & FishData[,adClipVariable] == "AI" & (is.na(FishData[,physTagsVariable]) | FishData[,physTagsVariable] == "notag") & FishData[,pbtGroupVariable] == "Unassigned")
+			))
+		}
 	} else if (RTYPE == "wild"){
+		max_expand <- NULL
 		#spibetr data is data for fish that are only known to be hatchery origin through PBT
 		if (spibetr){
 				spibetr_data <- hierarch_data[hierarch_data[,adClipVariable] =="AI" & (is.na(hierarch_data[,physTagsVariable]) | hierarch_data[,physTagsVariable] == "notag") & !is.na(hierarch_data[,pbtGroupVariable]) & hierarch_data[,pbtGroupVariable] != "Unassigned",]
@@ -353,7 +362,7 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 	#
 
 
-	decompose_hierarchical <- function(func_hierarch_data, func_Hierarch_variables, func_pbtGroupVariable, func_RTYPE, func_h_hnc_w_count_est, func_spibetr_data, func_spibetr){
+	decompose_hierarchical <- function(func_hierarch_data, func_Hierarch_variables, func_pbtGroupVariable, func_RTYPE, func_h_hnc_w_count_est, func_spibetr_data, func_spibetr, func_max_expand){
 
 		hierarch_output_list <- list()	#storage of output, flexible for different numbers of factors
 		column_cats <- c()	#this is the list of factors analyzed so far plus the current
@@ -599,6 +608,56 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 
 					}
 					hierarch_estimates_count <- rbind(hierarch_estimates_count, temp_output_2, stringsAsFactors = FALSE)
+					#Using the tag rate expanded "counts" directly to calculate proportions can lead to some grou sbeing reduced below their
+					#sample count in cases where there aren't enough Unassigned fish to distribute
+					#to prevent this, we need to use the sample counts and the use the tag rates to only redistribute the Unassigned fish
+					#for example, is you have four fish and all PBT assign, then regardless of tag rates, you will say each one represents
+					# a quarter of the return. This is really only an issue with small samples b/c of sampling variation
+					if(func_RTYPE == "clipped"){ # if clipped, simple process:
+						expanded_counts <- as.numeric(temp_output[,col_num]) - as.numeric(temp_output_2[,col_num]) # this is expanded - sample count, so
+							#... it is the number of untagged fish expected
+						#this is the number of fish that are available to be used up by expansion
+						num_expandable <- sum(as.numeric(temp_output_2[temp_output_2[,func_pbtGroupVariable] == "Unassigned",col_num]))
+						if(num_expandable > sum(expanded_counts)){
+							#if there are more Unassigned fish than there are predicted by expansion, only allocate as many as are predicted
+							#this is the typical case as there are some strays
+							num_expandable <- sum(expanded_counts)
+						}
+						# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
+						temp_output[,col_num] <- as.numeric(temp_output_2[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
+					} else { # if noclip_H, have to use W count for PBT only expansion, and have to use Unassigned for physTag expansion
+						# temp_output and _2 are all fish
+						# temp_output_3 and 4 are phystag only
+						#so first create pbt only data structures
+						temp_output_pbt_only <- temp_output
+						temp_output_pbt_only_2 <- temp_output_2
+						temp_output_pbt_only[,col_num] <- as.numeric(temp_output_pbt_only[,col_num]) - as.numeric(temp_output_3[,col_num])
+						temp_output_pbt_only_2[,col_num] <- as.numeric(temp_output_pbt_only_2[,col_num]) - as.numeric(temp_output_4[,col_num])
+						# first the physTag
+						expanded_counts <- as.numeric(temp_output_3[,col_num]) - as.numeric(temp_output_4[,col_num]) # this is expanded - sample count, so
+						num_expandable <- sum(as.numeric(temp_output_4[temp_output_4[,func_pbtGroupVariable] == "Unassigned",col_num]))
+						if(num_expandable > sum(expanded_counts)){
+							#if there are more Unassigned fish than there are predicted by expansion, only allocate as many as are predicted
+							#this is the typical case as there are some strays
+							num_expandable <- sum(expanded_counts)
+						}
+						# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
+						temp_output_3[,col_num] <- as.numeric(temp_output_4[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
+						# now the pbt only
+						expanded_counts <- as.numeric(temp_output_pbt_only[,col_num]) - as.numeric(temp_output_pbt_only_2[,col_num]) # this is expanded - sample count, so
+						#this is the number of putatively wild fish in the strata (ie, no or unknown phystag and no PBT assignment)
+						num_expandable <- as.numeric(func_max_expand[func_max_expand[,1] == s,2])
+						if(num_expandable > sum(expanded_counts)){
+							#if there are more "wild" fish than there are predicted by expansion, only allocate as many as are predicted
+							#this is the typical case as there are some strays
+							num_expandable <- sum(expanded_counts)
+						}
+						# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
+						temp_output_pbt_only[,col_num] <- as.numeric(temp_output_pbt_only_2[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
+						#and now combine pbystag and pbt only
+						temp_output[,col_num] <- as.numeric(temp_output_3[,col_num]) + as.numeric(temp_output_pbt_only[,col_num])
+					}
+					# now we make them proportions of the whole strata
 					temp_output[,col_num] <- as.numeric(temp_output[,col_num]) / sum(as.numeric(temp_output[,col_num]))
 					hierarch_estimates <- rbind(hierarch_estimates, temp_output, stringsAsFactors = FALSE)
 				}
@@ -712,7 +771,7 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 
 
 	if(length(Hierarch_variables) > 0){
-		Hierarchical_decomposition <- decompose_hierarchical(hierarch_data, Hierarch_variables, pbtGroupVariable, RTYPE, h_hnc_w_count_est, spibetr_data, spibetr)
+		Hierarchical_decomposition <- decompose_hierarchical(hierarch_data, Hierarch_variables, pbtGroupVariable, RTYPE, h_hnc_w_count_est, spibetr_data, spibetr, max_expand)
 
 		# Write hierarchical estimate outputs
 		for(i in 1:length(Hierarchical_decomposition)){
@@ -794,12 +853,20 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 		if(length(Hierarch_variables) > 0){
 			#select rearing type of interest(clipped, noclip_h, wild)
 			if (RTYPE == "clipped"){
+				boot_max_expand <- NULL
 				boot_spibetr_data <- NULL
 				data_boot <- data_boot[data_boot[,adClipVariable] == "AD",]
 			} else if (RTYPE == "noclip_H"){
 				boot_spibetr_data <- NULL
+				#calculate total number of putatively "wild" fish in each strata so that the algorithm knows how many it can expand the pbt-only fish for
+				boot_max_expand <- matrix(nrow = 0, ncol = 2)
+				for(s in unique(data_boot$Strata)){
+					boot_max_expand <- rbind(c( s,
+						sum(data_boot$Strata == s & data_boot[,adClipVariable] == "AI" & (is.na(data_boot[,physTagsVariable]) | data_boot[,physTagsVariable] == "notag") & data_boot[,pbtGroupVariable] == "Unassigned")
+					))
 				data_boot <- data_boot[data_boot[,adClipVariable] == "AI" & ((!is.na(data_boot[,physTagsVariable]) & data_boot[,physTagsVariable] == "tag") | (!is.na(data_boot[,pbtGroupVariable]) & data_boot[,pbtGroupVariable] != "Unassigned")),]
 			} else if (RTYPE == "wild"){
+				boot_max_expand <- NULL
 				#spibetr data is data for fish that are only known to be hatchery origin through PBT
 				if (spibetr){
 						boot_spibetr_data <- data_boot[data_boot[,adClipVariable] =="AI" & (is.na(data_boot[,physTagsVariable]) | data_boot[,physTagsVariable] == "notag") & !is.na(data_boot[,pbtGroupVariable]) & data_boot[,pbtGroupVariable] != "Unassigned",]
@@ -818,7 +885,7 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 
 
 			#hierarchical estimation
-			Hierarchical_decomposition_boot <- decompose_hierarchical(data_boot, Hierarch_variables, pbtGroupVariable, RTYPE, Estimate_h_hnc_w_boot[[3]], boot_spibetr_data, spibetr)
+			Hierarchical_decomposition_boot <- decompose_hierarchical(data_boot, Hierarch_variables, pbtGroupVariable, RTYPE, Estimate_h_hnc_w_boot[[3]], boot_spibetr_data, spibetr, boot_max_expand)
 
 			# hierarchical estimate outputs
 			for(i in 1:length(Hierarchical_decomposition_boot)){
