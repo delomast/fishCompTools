@@ -864,6 +864,7 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 					boot_max_expand <- rbind(c( s,
 						sum(data_boot$Strata == s & data_boot[,adClipVariable] == "AI" & (is.na(data_boot[,physTagsVariable]) | data_boot[,physTagsVariable] == "notag") & data_boot[,pbtGroupVariable] == "Unassigned")
 					))
+				}
 				data_boot <- data_boot[data_boot[,adClipVariable] == "AI" & ((!is.na(data_boot[,physTagsVariable]) & data_boot[,physTagsVariable] == "tag") | (!is.na(data_boot[,pbtGroupVariable]) & data_boot[,pbtGroupVariable] != "Unassigned")),]
 			} else if (RTYPE == "wild"){
 				boot_max_expand <- NULL
