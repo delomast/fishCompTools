@@ -542,6 +542,56 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 						}
 					}
 
+					#Using the tag rate expanded "counts" directly to calculate proportions can lead to some grou sbeing reduced below their
+					#sample count in cases where there aren't enough Unassigned fish to distribute
+					#to prevent this, we need to use the sample counts and the use the tag rates to only redistribute the Unassigned fish
+					#for example, is you have four fish and all PBT assign, then regardless of tag rates, you will say each one represents
+					# a quarter of the return. This is really only an issue with small samples b/c of sampling variation
+					if(func_RTYPE == "clipped"){ # if clipped, simple process:
+						expanded_counts <- as.numeric(temp_output[,col_num]) - as.numeric(temp_output_2[,col_num]) # this is expanded - sample count, so
+							#... it is the number of untagged fish expected
+						#this is the number of fish that are available to be used up by expansion
+						num_expandable <- sum(as.numeric(temp_output_2[temp_output_2[,func_pbtGroupVariable] == "Unassigned",col_num]))
+						if(num_expandable > sum(expanded_counts)){
+							#if there are more Unassigned fish than there are predicted by expansion, only allocate as many as are predicted
+							#this is the typical case as there are some strays
+							num_expandable <- sum(expanded_counts)
+						}
+						# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
+						temp_output[,col_num] <- as.numeric(temp_output_2[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
+					} else { # if noclip_H, have to use W count for PBT only expansion, and have to use Unassigned for physTag expansion
+						# temp_output and _2 are all fish
+						# temp_output_3 and 4 are phystag only
+						#so first create pbt only data structures
+						temp_output_pbt_only <- temp_output
+						temp_output_pbt_only_2 <- temp_output_2
+						temp_output_pbt_only[,col_num] <- as.numeric(temp_output_pbt_only[,col_num]) - as.numeric(temp_output_3[,col_num])
+						temp_output_pbt_only_2[,col_num] <- as.numeric(temp_output_pbt_only_2[,col_num]) - as.numeric(temp_output_4[,col_num])
+						# first the physTag
+						expanded_counts <- as.numeric(temp_output_3[,col_num]) - as.numeric(temp_output_4[,col_num]) # this is expanded - sample count, so
+						num_expandable <- sum(as.numeric(temp_output_4[temp_output_4[,func_pbtGroupVariable] == "Unassigned",col_num]))
+						if(num_expandable > sum(expanded_counts)){
+							#if there are more Unassigned fish than there are predicted by expansion, only allocate as many as are predicted
+							#this is the typical case as there are some strays
+							num_expandable <- sum(expanded_counts)
+						}
+						# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
+						temp_output_3[,col_num] <- as.numeric(temp_output_4[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
+						# now the pbt only
+						expanded_counts <- as.numeric(temp_output_pbt_only[,col_num]) - as.numeric(temp_output_pbt_only_2[,col_num]) # this is expanded - sample count, so
+						#this is the number of putatively wild fish in the strata (ie, no or unknown phystag and no PBT assignment)
+						num_expandable <- as.numeric(func_max_expand[func_max_expand[,1] == s,2])
+						if(num_expandable > sum(expanded_counts)){
+							#if there are more "wild" fish than there are predicted by expansion, only allocate as many as are predicted
+							#this is the typical case as there are some strays
+							num_expandable <- sum(expanded_counts)
+						}
+						# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
+						temp_output_pbt_only[,col_num] <- as.numeric(temp_output_pbt_only_2[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
+						#and now combine pbystag and pbt only
+						temp_output[,col_num] <- as.numeric(temp_output_3[,col_num]) + as.numeric(temp_output_pbt_only[,col_num])
+					}
+
 					#### need to adjust unassigned group, if it exists
 					if("Unassigned" %in% temp_output[,func_pbtGroupVariable]){
 						#need to loop through all combinations of other variables
@@ -608,55 +658,6 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 
 					}
 					hierarch_estimates_count <- rbind(hierarch_estimates_count, temp_output_2, stringsAsFactors = FALSE)
-					#Using the tag rate expanded "counts" directly to calculate proportions can lead to some grou sbeing reduced below their
-					#sample count in cases where there aren't enough Unassigned fish to distribute
-					#to prevent this, we need to use the sample counts and the use the tag rates to only redistribute the Unassigned fish
-					#for example, is you have four fish and all PBT assign, then regardless of tag rates, you will say each one represents
-					# a quarter of the return. This is really only an issue with small samples b/c of sampling variation
-					if(func_RTYPE == "clipped"){ # if clipped, simple process:
-						expanded_counts <- as.numeric(temp_output[,col_num]) - as.numeric(temp_output_2[,col_num]) # this is expanded - sample count, so
-							#... it is the number of untagged fish expected
-						#this is the number of fish that are available to be used up by expansion
-						num_expandable <- sum(as.numeric(temp_output_2[temp_output_2[,func_pbtGroupVariable] == "Unassigned",col_num]))
-						if(num_expandable > sum(expanded_counts)){
-							#if there are more Unassigned fish than there are predicted by expansion, only allocate as many as are predicted
-							#this is the typical case as there are some strays
-							num_expandable <- sum(expanded_counts)
-						}
-						# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
-						temp_output[,col_num] <- as.numeric(temp_output_2[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
-					} else { # if noclip_H, have to use W count for PBT only expansion, and have to use Unassigned for physTag expansion
-						# temp_output and _2 are all fish
-						# temp_output_3 and 4 are phystag only
-						#so first create pbt only data structures
-						temp_output_pbt_only <- temp_output
-						temp_output_pbt_only_2 <- temp_output_2
-						temp_output_pbt_only[,col_num] <- as.numeric(temp_output_pbt_only[,col_num]) - as.numeric(temp_output_3[,col_num])
-						temp_output_pbt_only_2[,col_num] <- as.numeric(temp_output_pbt_only_2[,col_num]) - as.numeric(temp_output_4[,col_num])
-						# first the physTag
-						expanded_counts <- as.numeric(temp_output_3[,col_num]) - as.numeric(temp_output_4[,col_num]) # this is expanded - sample count, so
-						num_expandable <- sum(as.numeric(temp_output_4[temp_output_4[,func_pbtGroupVariable] == "Unassigned",col_num]))
-						if(num_expandable > sum(expanded_counts)){
-							#if there are more Unassigned fish than there are predicted by expansion, only allocate as many as are predicted
-							#this is the typical case as there are some strays
-							num_expandable <- sum(expanded_counts)
-						}
-						# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
-						temp_output_3[,col_num] <- as.numeric(temp_output_4[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
-						# now the pbt only
-						expanded_counts <- as.numeric(temp_output_pbt_only[,col_num]) - as.numeric(temp_output_pbt_only_2[,col_num]) # this is expanded - sample count, so
-						#this is the number of putatively wild fish in the strata (ie, no or unknown phystag and no PBT assignment)
-						num_expandable <- as.numeric(func_max_expand[func_max_expand[,1] == s,2])
-						if(num_expandable > sum(expanded_counts)){
-							#if there are more "wild" fish than there are predicted by expansion, only allocate as many as are predicted
-							#this is the typical case as there are some strays
-							num_expandable <- sum(expanded_counts)
-						}
-						# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
-						temp_output_pbt_only[,col_num] <- as.numeric(temp_output_pbt_only_2[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
-						#and now combine pbystag and pbt only
-						temp_output[,col_num] <- as.numeric(temp_output_3[,col_num]) + as.numeric(temp_output_pbt_only[,col_num])
-					}
 					# now we make them proportions of the whole strata
 					temp_output[,col_num] <- as.numeric(temp_output[,col_num]) / sum(as.numeric(temp_output[,col_num]))
 					hierarch_estimates <- rbind(hierarch_estimates, temp_output, stringsAsFactors = FALSE)
