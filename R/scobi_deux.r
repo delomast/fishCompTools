@@ -655,9 +655,9 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 							#now subtract from unassigned group
 							bool_temp <- find_matching_rows(temp_output_categories, categories_to_sum[i,])
 							temp_output[bool_temp & temp_output[,func_pbtGroupVariable] == "Unassigned", col_num] <- as.numeric(temp_output[bool_temp & temp_output[,func_pbtGroupVariable] == "Unassigned", col_num]) - num_expanded
-							#prevent negative estimates - using 1e-10 b/c sometiems roundign error above can cause Unassigned to only be reduced
+							#prevent negative estimates - using 1e-7 b/c sometiems roundign error above can cause Unassigned to only be reduced
 							#   to a very small fraction (the calculations are trying to make them eaqual, so round can make it a small fraction)
-							if (as.numeric(temp_output[bool_temp & temp_output[,func_pbtGroupVariable] == "Unassigned", col_num]) < .0000000001){
+							if (as.numeric(temp_output[bool_temp & temp_output[,func_pbtGroupVariable] == "Unassigned", col_num]) < .0000001){
 								temp_output[bool_temp & temp_output[,func_pbtGroupVariable] == "Unassigned", col_num] <- 0
 							}
 						}
