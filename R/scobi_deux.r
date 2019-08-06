@@ -329,7 +329,7 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 		#calculate total number of putatively "wild" fish in each strata so that the algorithm knows how many it can expand the pbt-only fish for
 		max_expand <- matrix(nrow = 0, ncol = 2)
 		for(s in unique(FishData$Strata)){
-			max_expand <- rbind(c( s,
+			max_expand <- rbind(max_expand, c(s,
 				sum(FishData$Strata == s & FishData[,adClipVariable] == "AI" & (is.na(FishData[,physTagsVariable]) | FishData[,physTagsVariable] == "notag") & FishData[,pbtGroupVariable] == "Unassigned")
 			))
 		}
@@ -550,15 +550,17 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 					if(func_RTYPE == "clipped"){ # if clipped, simple process:
 						expanded_counts <- as.numeric(temp_output[,col_num]) - as.numeric(temp_output_2[,col_num]) # this is expanded - sample count, so
 							#... it is the number of untagged fish expected
-						#this is the number of fish that are available to be used up by expansion
-						num_expandable <- sum(as.numeric(temp_output_2[temp_output_2[,func_pbtGroupVariable] == "Unassigned",col_num]))
-						if(num_expandable > sum(expanded_counts)){
-							#if there are more Unassigned fish than there are predicted by expansion, only allocate as many as are predicted
-							#this is the typical case as there are some strays
-							num_expandable <- sum(expanded_counts)
+						if (sum(expanded_counts) > 0){ #only need to do this if there was an expansion. This prevents division by zero.
+							#this is the number of fish that are available to be used up by expansion
+							num_expandable <- sum(as.numeric(temp_output_2[temp_output_2[,func_pbtGroupVariable] == "Unassigned",col_num]))
+							if(num_expandable > sum(expanded_counts)){
+								#if there are more Unassigned fish than there are predicted by expansion, only allocate as many as are predicted
+								#this is the typical case as there are some strays
+								num_expandable <- sum(expanded_counts)
+							}
+							# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
+							temp_output[,col_num] <- as.numeric(temp_output_2[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
 						}
-						# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
-						temp_output[,col_num] <- as.numeric(temp_output_2[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
 					} else { # if noclip_H, have to use W count for PBT only expansion, and have to use Unassigned for physTag expansion
 						# temp_output and _2 are all fish
 						# temp_output_3 and 4 are phystag only
@@ -568,27 +570,31 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 						temp_output_pbt_only[,col_num] <- as.numeric(temp_output_pbt_only[,col_num]) - as.numeric(temp_output_3[,col_num])
 						temp_output_pbt_only_2[,col_num] <- as.numeric(temp_output_pbt_only_2[,col_num]) - as.numeric(temp_output_4[,col_num])
 						# first the physTag
-						expanded_counts <- as.numeric(temp_output_3[,col_num]) - as.numeric(temp_output_4[,col_num]) # this is expanded - sample count, so
-						num_expandable <- sum(as.numeric(temp_output_4[temp_output_4[,func_pbtGroupVariable] == "Unassigned",col_num]))
-						if(num_expandable > sum(expanded_counts)){
-							#if there are more Unassigned fish than there are predicted by expansion, only allocate as many as are predicted
-							#this is the typical case as there are some strays
-							num_expandable <- sum(expanded_counts)
+						expanded_counts <- as.numeric(temp_output_3[,col_num]) - as.numeric(temp_output_4[,col_num]) # this is expanded - sample count
+						if (sum(expanded_counts) > 0){ #only need to do this if there was an expansion. This prevents division by zero.
+							num_expandable <- sum(as.numeric(temp_output_4[temp_output_4[,func_pbtGroupVariable] == "Unassigned",col_num]))
+							if(num_expandable > sum(expanded_counts)){
+								#if there are more Unassigned fish than there are predicted by expansion, only allocate as many as are predicted
+								#this is the typical case as there are some strays
+								num_expandable <- sum(expanded_counts)
+							}
+							# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
+							temp_output_3[,col_num] <- as.numeric(temp_output_4[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
 						}
-						# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
-						temp_output_3[,col_num] <- as.numeric(temp_output_4[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
 						# now the pbt only
 						expanded_counts <- as.numeric(temp_output_pbt_only[,col_num]) - as.numeric(temp_output_pbt_only_2[,col_num]) # this is expanded - sample count, so
-						#this is the number of putatively wild fish in the strata (ie, no or unknown phystag and no PBT assignment)
-						num_expandable <- as.numeric(func_max_expand[func_max_expand[,1] == s,2])
-						if(num_expandable > sum(expanded_counts)){
-							#if there are more "wild" fish than there are predicted by expansion, only allocate as many as are predicted
-							#this is the typical case as there are some strays
-							num_expandable <- sum(expanded_counts)
+						if (sum(expanded_counts) > 0){ #only need to do this if there was an expansion. This prevents division by zero.
+							#this is the number of putatively wild fish in the strata (ie, no or unknown phystag and no PBT assignment)
+							num_expandable <- as.numeric(func_max_expand[func_max_expand[,1] == s,2])
+							if(num_expandable > sum(expanded_counts)){
+								#if there are more "wild" fish than there are predicted by expansion, only allocate as many as are predicted
+								#this is the typical case as there are some strays
+								num_expandable <- sum(expanded_counts)
+							}
+							# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
+							temp_output_pbt_only[,col_num] <- as.numeric(temp_output_pbt_only_2[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
 						}
-						# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
-						temp_output_pbt_only[,col_num] <- as.numeric(temp_output_pbt_only_2[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
-						#and now combine pbystag and pbt only
+						#and now combine phystag and pbt only
 						temp_output[,col_num] <- as.numeric(temp_output_3[,col_num]) + as.numeric(temp_output_pbt_only[,col_num])
 					}
 
@@ -649,9 +655,9 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 							#now subtract from unassigned group
 							bool_temp <- find_matching_rows(temp_output_categories, categories_to_sum[i,])
 							temp_output[bool_temp & temp_output[,func_pbtGroupVariable] == "Unassigned", col_num] <- as.numeric(temp_output[bool_temp & temp_output[,func_pbtGroupVariable] == "Unassigned", col_num]) - num_expanded
-
-							#prevent negative estimates
-							if (temp_output[bool_temp & temp_output[,func_pbtGroupVariable] == "Unassigned", col_num] < 0){
+							#prevent negative estimates - using 1e-10 b/c sometiems roundign error above can cause Unassigned to only be reduced
+							#   to a very small fraction (the calculations are trying to make them eaqual, so round can make it a small fraction)
+							if (as.numeric(temp_output[bool_temp & temp_output[,func_pbtGroupVariable] == "Unassigned", col_num]) < .0000000001){
 								temp_output[bool_temp & temp_output[,func_pbtGroupVariable] == "Unassigned", col_num] <- 0
 							}
 						}
@@ -862,7 +868,7 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 				#calculate total number of putatively "wild" fish in each strata so that the algorithm knows how many it can expand the pbt-only fish for
 				boot_max_expand <- matrix(nrow = 0, ncol = 2)
 				for(s in unique(data_boot$Strata)){
-					boot_max_expand <- rbind(c( s,
+					boot_max_expand <- rbind(boot_max_expand, c(s,
 						sum(data_boot$Strata == s & data_boot[,adClipVariable] == "AI" & (is.na(data_boot[,physTagsVariable]) | data_boot[,physTagsVariable] == "notag") & data_boot[,pbtGroupVariable] == "Unassigned")
 					))
 				}
