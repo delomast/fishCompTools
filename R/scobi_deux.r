@@ -500,13 +500,29 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 						#calculate number of observations that are an exact match for the category
 						bool_temp <- find_matching_rows(matching_data, temp_output[i,1:ncol(matching_data)])
 						temp_output_pbt_only[i,col_num] <- sum(strata_data[bool_temp & (is.na(strata_data[,physTagsVariable]) | strata_data[,physTagsVariable] == "notag") ,"pbt_expansion"]) - sum(bool_temp & (is.na(strata_data[,physTagsVariable]) | strata_data[,physTagsVariable] == "notag"))
+							## temp_output_pbt_only is the extra expanded fish only (the sample count has been subtracted)
 						temp_output[i,col_num] <- sum(bool_temp)	#this is sample count
 					}
 					#save estimates
 					colnames(temp_output) <- c("Strata", column_cats, "Count_trapped")
 					hierarch_estimates_count <- rbind(hierarch_estimates_count, temp_output, stringsAsFactors = FALSE)
+
+					# make sure there are enough wild fish to handle the expansion
+					expanded_counts <- as.numeric(temp_output_pbt_only[,col_num]) # this is already expanded - sample count from above, so "extra" fish predicted
+					if (sum(expanded_counts) > 0){ #only need to do this if there was an expansion. This prevents division by zero.
+						#this is the number of putatively wild fish in the strata (ie, no or unknown phystag and no PBT assignment)
+						num_expandable <- as.numeric(func_max_expand[func_max_expand[,1] == s,2])
+						if(num_expandable > sum(expanded_counts)){
+							#if there are more "wild" fish than there are predicted by expansion, only allocate as many as are predicted
+							#this is the typical case as there are some strays
+							num_expandable <- sum(expanded_counts)
+						}
+						# so we take the sample count and then divy up the expandable fish in proportion to the tag rate expansions
+						# temp_output[,col_num] is the sample count at this point
+						temp_output[,col_num] <- as.numeric(temp_output[,col_num]) + num_expandable*(expanded_counts / sum(expanded_counts))
+					}
+
 					colnames(temp_output) <- c("Strata", column_cats, "Proportion_of_strata")
-					temp_output[,col_num] <- as.numeric(temp_output[,col_num]) + as.numeric(temp_output_pbt_only[,col_num]) #add in expanded fish (fish that would appear wild)
 					temp_output[,col_num] <- as.numeric(temp_output[,col_num]) / sum(as.numeric(temp_output[,col_num])) #turn into proportions
 					hierarch_estimates <- rbind(hierarch_estimates, temp_output, stringsAsFactors = FALSE)
 
