@@ -738,8 +738,8 @@ SCOBI_deux_fast <- function(adultData = NULL, windowData = NULL, Run = "output",
 							# sometimes it can occur in bootstrap datasets if there is a moderate or large amount of missing data
 							# in those cases the original will need to be used
 
-							errorMessage <- paste0("Warning. There are no fish in ", last_estim[j,2:props_col_2],
-											  " with data for ", factor,
+							errorMessage <- paste0("Warning. There are no fish in ", paste(last_estim[j,2:props_col_2], collapse = " "),
+											  " with data for ", column_cats[i],
 											  ". This faster version of the function cannot handle correcting for ",
 											  "This level of missing data. You need to use the slower version of ",
 											"the function for this analysis.")
