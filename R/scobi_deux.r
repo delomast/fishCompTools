@@ -92,6 +92,7 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 
 	if(sink_out){
 		sink(paste0(Run, "_", screenOutput))
+		on.exit(sink()) # make sure writing to file is stopped regardless of exit type
 	}
 
 	collaps <- Windata[,3]
@@ -849,9 +850,6 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 		cat("\nEnd analysis at:\n")
 		print(Sys.time())
 		cat("\n")
-		if(sink_out){
-			sink()
-		}
 		return("B is less than 1. Not performing any bootstrapping. SCOBI Deux is complete.")
 	}
 
@@ -1003,9 +1001,6 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 	print(Sys.time())
 	cat("\n")
 
-	if(sink_out){
-		sink()
-	}
 
 	return("Scobi Deux is complete")
 
