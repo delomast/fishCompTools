@@ -528,7 +528,7 @@ SCOBI_deux_fast <- function(adultData = NULL, windowData = NULL, Run = "output",
 					matching_data <- strata_data[ , c("Strata", column_cats)]	#get data with just columns that you need, in the order you need them
 					#only physically tagged fish, for expansion to subtract from "Unassigned"
 					if (func_RTYPE == "noclip_H"){
-						matching_data_phystag <- strata_data[strata_data[,physTagsVariable] == "tag" , c("Strata", column_cats, "pbt_expansion")]	#get data with just columns that you need, in the order you need them
+						matching_data_phystag <- strata_data[!is.na(strata_data[,physTagsVariable]) & strata_data[,physTagsVariable] == "tag" , c("Strata", column_cats, "pbt_expansion")]	#get data with just columns that you need, in the order you need them
 						if(length(dim(matching_data_phystag)) < 2){
 							matching_data_phystag <- t(as.matrix(matching_data_phystag))
 						}
