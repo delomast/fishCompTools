@@ -146,7 +146,7 @@ run_time_graph <- function(windowData = NULL, Run = "output", dailyCountFile = N
 			## read strata and estimates, incorporate into a matrix
 			line <- readLines(connection, n = 1, warn = FALSE) # read first strata
 			rearing_table <- matrix(nrow = 0, ncol = 3)
-			while (!grepl("Totals", line) | length(line) < 1) {
+			while (!grepl("Totals", line) & length(line) > 1) {
 				rearing_table <- rbind(rearing_table, as.numeric(strsplit(line, "\t")[[1]][2:4]))
 				rownames(rearing_table)[nrow(rearing_table)] <- strsplit(line, "\t")[[1]][1]
 				line <- readLines(connection, n = 1, warn = FALSE)
