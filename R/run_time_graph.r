@@ -134,7 +134,7 @@ run_time_graph <- function(windowData = NULL, Run = "output", dailyCountFile = N
 			connection  <- file(file, open = "r")
 			line <- readLines(connection, n = 1, warn = FALSE)
 			# find where the data you want starts
-			while (line != "PBT expanded counts of each type in the run" | length(line) < 1) {
+			while (line != "PBT expanded counts of each type in the run" & length(line) > 0) {
 			  line <- readLines(connection, n = 1, warn = FALSE)
 			}
 			if(length(line) < 1){
@@ -146,7 +146,7 @@ run_time_graph <- function(windowData = NULL, Run = "output", dailyCountFile = N
 			## read strata and estimates, incorporate into a matrix
 			line <- readLines(connection, n = 1, warn = FALSE) # read first strata
 			rearing_table <- matrix(nrow = 0, ncol = 3)
-			while (!grepl("Totals", line) & length(line) > 1) {
+			while (!grepl("Totals", line) & length(line) > 0) {
 				rearing_table <- rbind(rearing_table, as.numeric(strsplit(line, "\t")[[1]][2:4]))
 				rownames(rearing_table)[nrow(rearing_table)] <- strsplit(line, "\t")[[1]][1]
 				line <- readLines(connection, n = 1, warn = FALSE)
