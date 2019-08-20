@@ -13,9 +13,12 @@
 #'   same order as \code{relSizePBTgroups}
 ##' @param physTagRates the true physical tagging rate for each PBT groups for noclip_H fish ONLY
 #'   in the same order as \code{relSizePBTgroups}
-#' @param true_clipped the true proportion of fish that are clipped, hatchery origin
-#' @param true_noclip_H the true proportion of fish that are unclipped, hatchery origin
-#' @param true_wild the true proportion of fish that are unclipped, wild origin
+#' @param true_clipped the true proportion of fish that are clipped, hatchery origin in each strata
+#'   order must match the order of \code{censusSizes}
+#' @param true_noclip_H the true proportion of fish that are unclipped, hatchery origin in each strata
+#'   order must match the order of \code{censusSizes}
+#' @param true_wild the true proportion of fish that are unclipped, wild origin in each strata
+#'   order must match the order of \code{censusSizes}
 #' @param alph the value of \code{alph} to use for CI estimation
 #' @param B the number of bootstraps to perform for CI estimation
 #'
@@ -74,7 +77,7 @@ rearTypeSim <- function(numSims, sampRates, censusSizes, relSizePBTgroups, tagRa
 			nSampled <- rbinom(1, censusSizes[i], sampRates[i])
 			#choose numbers clipped, noclip_H, and wild
 				## returns 1col matrix, turn into vector
-			nRear <- as.vector(rmultinom(1, nSampled, c(true_clipped, true_noclip_H, true_wild)))
+			nRear <- as.vector(rmultinom(1, nSampled, c(true_clipped[i], true_noclip_H[i], true_wild[i])))
 			#choose number of noclip_H that belong to each PBT group
 				## returns 1col matrix, turn into vector
 			PBTgroupNums <- as.vector(rmultinom(1, nRear[2], relSizePBTgroups))
