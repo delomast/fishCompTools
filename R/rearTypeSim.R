@@ -48,8 +48,11 @@ rearTypeSim <- function(numSims, sampRates, censusSizes, relSizePBTgroups, tagRa
 		stop("sampRates cannot be greater than 1 or less than 0")
 	}
 	# true props
-	if(sum(true_clipped, true_noclip_H, true_wild) != 1){
-		stop("true_clipped, true_noclip_H, and true_wild must sum to 1")
+	propCheck <- mapply(true_clipped, true_noclip_H, true_wild, function(x,y,z){
+		return(sum(x,y,z) != 1)
+	})
+	if(sum(propCheck) > 0){
+		stop("true_clipped, true_noclip_H, and true_wild must sum to 1 for all strata")
 	}
 	# alph
 	if (alph >= 1 || alph <= 0){

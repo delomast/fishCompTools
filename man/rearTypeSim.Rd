@@ -28,11 +28,14 @@ same order as \code{relSizePBTgroups}}
 \item{physTagRates}{the true physical tagging rate for each PBT groups for noclip_H fish ONLY
 in the same order as \code{relSizePBTgroups}}
 
-\item{true_clipped}{the true proportion of fish that are clipped, hatchery origin}
+\item{true_clipped}{the true proportion of fish that are clipped, hatchery origin in each strata
+order must match the order of \code{censusSizes}}
 
-\item{true_noclip_H}{the true proportion of fish that are unclipped, hatchery origin}
+\item{true_noclip_H}{the true proportion of fish that are unclipped, hatchery origin in each strata
+order must match the order of \code{censusSizes}}
 
-\item{true_wild}{the true proportion of fish that are unclipped, wild origin}
+\item{true_wild}{the true proportion of fish that are unclipped, wild origin in each strata
+order must match the order of \code{censusSizes}}
 
 \item{alph}{the value of \code{alph} to use for CI estimation}
 
