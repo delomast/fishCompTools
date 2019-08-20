@@ -78,6 +78,9 @@ rearTypeSim <- function(numSims, sampRates, censusSizes, relSizePBTgroups, tagRa
 		for(i in 1:nStrata){
 			# choose number sampled (trapped)
 			nSampled <- rbinom(1, censusSizes[i], sampRates[i])
+			if(nSampled < 1){ #prevent strata with no trapped fish - if there were no trapped fish, the user woudl combine them with others
+				nSampled <- 1
+			}
 			#choose numbers clipped, noclip_H, and wild
 				## returns 1col matrix, turn into vector
 			nRear <- as.vector(rmultinom(1, nSampled, c(true_clipped[i], true_noclip_H[i], true_wild[i])))
