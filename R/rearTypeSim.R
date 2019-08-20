@@ -20,6 +20,7 @@
 #' @param B the number of bootstraps to perform for CI estimation
 #'
 #' @return a dataframe with estimates and CIs for all three categories from each iteration
+#' @export
 #'
 
 rearTypeSim <- function(numSims, sampRates, censusSizes, relSizePBTgroups, tagRates, obsTagRates, physTagRates,

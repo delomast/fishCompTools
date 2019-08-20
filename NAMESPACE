@@ -3,5 +3,6 @@
 export(SCOBI_deux)
 export(SCOBI_deux_fast)
 export(marginalize_SD)
+export(rearTypeSim)
 export(run_time_graph)
 export(scobiNoPBT)
