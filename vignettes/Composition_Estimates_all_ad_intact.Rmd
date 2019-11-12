@@ -1,10 +1,10 @@
 ---
-title: "Composition Estimates with MCMC (ad-intact or no ad-clip information)"
+title: "Composition Estimates with MCMC"
 author: "Thomas Delomas"
 date: "9-16-2019"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Composition_Estimates_MCMC_ad_intact}
+  %\VignetteIndexEntry{Composition Estimates with MCMC}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-library(fishCompToolss)
+library(fishCompTools)
 ```
 
 ## Introduction

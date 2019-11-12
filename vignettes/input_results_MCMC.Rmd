@@ -4,7 +4,7 @@ author: "Thomas Delomas"
 date: "10-15-2019"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{input_results_MCMC}
+  %\VignetteIndexEntry{Structure of input and output of MCMC wrapper functions}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
