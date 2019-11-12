@@ -1,0 +1,163 @@
+---
+title: "Composition Estimates with MLE"
+author: "Thomas Delomas"
+date: "October 12, 2019"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Composition_Estimates_with_MLE}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(devMCpbt)
+```
+
+## Introduction
+This document will walk through how to estimate composition of a mixture of all ad-intact fish by PBT and GSI groups using maximum likelihood estimation. **if you do not separate wild origin fish by GSI assignments, you can create a dummy variable that gives all fish  (including PBT-assigned fish) the same GSI assignment.**
+
+
+A scenario of all ad-intact fish may be encountered for many reasons, including:
+
+* The entire population you are sampling is ad-intact
+* You estimate population sizes separately for ad-intact and ad-clipped fish
+* You do not differentiate between ad-intact and ad-clipped (so you can analyze them as if they are all ad-intact)
+* The species does not have an adipose fin (so you can analyze them as if they are all ad-intact)
+
+This document will work through a scenario where the samples are grouped into three strata.
+
+## First, get some data
+First, we will generate some data using the built in data-simulation function.
+
+```{r}
+set.seed(130) #make generated data reproducible
+# define the unknown "true" proportions at which fish in each
+# PBT group assign to the different GSI groups
+pbtGSImat <- matrix(c(.1, .8, .1,.8, .1, .1,.1, .1, .8), nrow = 3, ncol = 3, byrow = TRUE)
+
+# now generate three strata from identical parameters
+multStratData <- data.frame()
+for(i in 1:3){
+	tempData <- generatePBTGSIdata(sampRate = .2, censusSize = 3000, relSizePBTgroups = c(1,2,3), tagRates = c(.8, .85,.9), physTagRates = 0, true_clipped = 0, true_noclip_H = .4, true_wild = .6, relSizeGSIgroups = c(1,2,1), PBT_GSI_calls = pbtGSImat)
+	trapData <- tempData[[1]]
+	trapData$Strata <- i
+	multStratData <- rbind(multStratData, trapData)
+}
+tags <- tempData[[2]] # get the tag rates for the PBT groups
+multStratData$GSI <- paste0("GSIgroup_", multStratData$GSI)
+
+head(multStratData)
+```
+
+Now we have a dataframe named `multStratData` with a column describing whether a fish is ad-clipped or ad-intact (values of AD and AI, respectively), a column denoting if the fish has a physical tag that identifies it as hatchery origin (ignore this column for this vignette, the data we generated has no physical tags), a column with the PBT assignment (Unassigned means it was attempted to be assigned, but did not have a match), a column with GSI assignments, and a column giving the strata that sample belongs to.
+
+```{r}
+head(tags)
+```
+
+We also have a dataframe named `tags` with the names of the PBT groups (matching the labels in the GenParentHatchery column) and the tag rates (successful genotyping rates) for those groups. 
+
+## Second, get the estimates
+The likelihood function is defined in the package, and a wrapper in the package calls R's built in `optim` function to maximize the likelihood of the parameters within each strata. There is also a gradient function for this likelihood (currently only when you are using PBT and GSI information and not additional variables) to facilitate usage of gradient based methods. I show here my recommended way of running the optimization. It may occasionally cause R to throw an error, in which case you can troubleshoot (adjusting some of the option for optim can sometimes help), or use the `Nelder-Mead` method, which probably won't give you as good of an estimate, but is more robust. You could also consider using the accounting approach (`scobi_deux`) or the Bayesian approach (`MCpbt`) defined in this package.
+
+
+```{r}
+#the control option is passed to optim, telling it to run up to 10000 iterations
+#the gr option is passed to optim, telling it to use params_grad as the gradient function
+#the lower option is passed to optim, telling it to use 10^-12 as the minimum value to try for any parameter
+mlePointEstimates <- MLEwrapper(multStratData, tags = tags, GSIcol = "GSI", PBTcol = "GenParentHatchery", strataCol = "Strata", adFinCol = "AdClip", AI = TRUE, optimMethod = "L-BFGS-B", variableCols = NULL, gr = params_grad, lower=10^-12, control = list(maxit=10000))
+```
+
+## Structure of the results
+Now we have the point estimates of composition for each strata. The variable `mlePointEstimates` is a list with one item for each strata, and the items have identical structure. Let's look at one strata and walk through the structure of the results.
+```{r}
+print(mlePointEstimates[[1]])
+```
+
+You can see each strata is itself a list, with four items. The `piTot` item is a vector that gives the estimated proportions of the mixture that are hatchery fish belonging to the three PBT groups and that are wild fish belonging to the three GSI groups.
+
+The `piGSI` item is a matrix that shows the estimated proportions of each group (rows) by observed GSI assignment (columns). The wild origin groups are all fixed with 100% of the group assigning to the given GSI category. 
+
+If we specified the column name of a categorical variable when we called `MLEwrapper`, the `piVar` item would be a matrix that has the estimated proportions of each group (rows) by the different categories of the variable (columns). Since we did not specify a variable, this entry is a blank matrix.
+
+The `strataName` item is the value of the name of the strata that this entry was estimated from.
+
+## Going from proportions to numbers in the population
+
+Now we have the estimates as proportions, if we have an estimate of the total population size for each strata, we can simply multiply the size by `piTot` for each strata, and this will yield estimates for the number of fish in each category within each strata. To obtain an estimate across all strata, we can then simply sum them up as appropriate.
+
+For example, if we estimated that there were 3000 fish in strata 1 and 2, but only 1500 fish in strata three, we can calculate the totals in each strata with the following:
+
+```{r}
+#let's use rbind to make a matrix holding our estimates for each strata
+# each row will be a strata
+# note that if different groups are present in different strata,
+# or if the order of the groups in piTot is different in different strata, the below code will
+# not work. This is written to explain, not be efficient or perfectly versatile.
+strataComp <- rbind(
+	mlePointEstimates[[1]]$piTot * 3000,
+	mlePointEstimates[[2]]$piTot * 3000,
+	mlePointEstimates[[3]]$piTot * 1500
+)
+print(strataComp)
+```
+Now, we have the number of fish in each strata, and to get the number of fish in each category overall, we just have to add the columns.
+
+```{r}
+colSums(strataComp)
+```
+
+
+## Now, let's add a variable
+
+Let's say you also want to determine that composition of each group according to one particular **categorical** variable. Suppose you want to estiamte the proportions of each group that are female.
+
+First, we get some data, following the same scenario as above:
+
+```{r}
+set.seed(13) #make generated data reproducible
+# define the unknown "true" proportions at which fish in each
+# PBT group assign to the different GSI groups
+pbtGSImat <- matrix(c(.1, .8, .1,.8, .1, .1,.1, .1, .8), nrow = 3, ncol = 3, byrow = TRUE)
+
+#define the "true" proportions of each group that are male and female
+# we will have a moderate difference between the PBT and wild groups
+varMat <- list(
+	matrix(c(rep(c(.4,.6), 3), rep(c(.6,.4), 3)), nrow = 6, ncol = 2, byrow = TRUE)
+)
+
+# now generate three strata from identical parameters
+multStratData <- data.frame()
+for(i in 1:3){
+	tempData <- generatePBTGSIdata(sampRate = .2, censusSize = 3000, relSizePBTgroups = c(1,2,3), tagRates = c(.8, .85,.9), physTagRates = 0, true_clipped = 0, true_noclip_H = .4, true_wild = .6, relSizeGSIgroups = c(1,2,1), PBT_GSI_calls = pbtGSImat, varMatList = varMat)
+	trapData <- tempData[[1]]
+	trapData$Strata <- i
+	multStratData <- rbind(multStratData, trapData)
+}
+tags <- tempData[[2]] # get the tag rates for the PBT groups
+multStratData$GSI <- paste0("GSIgroup_", multStratData$GSI)
+multStratData$Var1[multStratData$Var1 == 1] <- "F"
+multStratData$Var1[multStratData$Var1 == 2] <- "M"
+colnames(multStratData)[colnames(multStratData) == "Var1"] <- "Sex"
+
+head(multStratData)
+```
+
+Then, we use the `MLEwrapper` function as before, but we specify the column name of the categorical variable with the `variableCols = ` option:
+
+```{r}
+### Note that this chunk of code will be updated when teh gradient function including an additional variable is written
+withVarEstimates <- MLEwrapper(multStratData, tags = tags, GSIcol = "GSI", PBTcol = "GenParentHatchery", strataCol = "Strata", adFinCol = "AdClip", AI = TRUE, optimMethod = "Nelder-Mead", variableCols = "Sex", control = list(maxit=5000))
+
+## now look at the first strata
+print(withVarEstimates[[1]])
+```
+
+Now, we have the estimated the proportions male and female for each group and each strata as the `piVar` items.

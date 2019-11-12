@@ -1,0 +1,178 @@
+---
+title: "Structure of input and output of MCMC wrapper functions"
+author: "Thomas Delomas"
+date: "10-15-2019"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{input_results_MCMC}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(devMCpbt)
+```
+
+## Introduction
+This document will walk-through the structure of the input and output of the wrapper functions for the MCMC estimation routine.
+
+## First, generate some data and the input
+
+For multiple strata, the inputs and results and lists with each strata being an entry, and the structure of each entry being the same. So, here we will only consider one strata.
+
+```{r}
+#### generate the data
+
+# define the unknown "true" proportions at which fish in each
+# PBT group assign to the different GSI groups
+pbtGSImat <- matrix(c(.1, .8, .1,.8, .1, .1,.1, .1, .8), nrow = 3, ncol = 3, byrow = TRUE)
+
+#define the "true" proportions of each group that are male and female
+# we will have a moderate difference between the PBT and wild groups
+varMat <- list(
+	matrix(c(rep(c(.4,.6), 3), rep(c(.6,.4), 3)), nrow = 6, ncol = 2, byrow = TRUE)
+)
+
+# now generate three strata from identical parameters
+multStratData <- data.frame()
+tempData <- generatePBTGSIdata(sampRate = .2, censusSize = 3000, relSizePBTgroups = c(1,2,3), tagRates = c(.8, .85,.9), physTagRates = 0, true_clipped = 0, true_noclip_H = .4, true_wild = .6, relSizeGSIgroups = c(1,2,1), PBT_GSI_calls = pbtGSImat, varMatList = varMat)
+multStratData <- tempData[[1]]
+multStratData$Strata <- 1
+tags <- tempData[[2]] # get the tag rates for the PBT groups
+
+multStratData$GSI <- paste0("GSIgroup_", multStratData$GSI)
+multStratData$Var1[multStratData$Var1 == 1] <- "F"
+multStratData$Var1[multStratData$Var1 == 2] <- "M"
+colnames(multStratData)[colnames(multStratData) == "Var1"] <- "Sex"
+
+#### now prepare the input
+mainInput <- prepStrata(multStratData, tags, GSIcol = "GSI", PBTcol = "GenParentHatchery", strataCol = "Strata", adFinCol = "AdClip", AI = TRUE, variableCols = c("Sex"))
+
+#### lets look at the structure
+str(mainInput)
+
+```
+
+**A word of caution: Internally, the order of the entries in the various inputs are used. It is vital that if you modify the inputs manually, you do not change the ordering of the values. Dimension names are NOT used by the functions, they are only printed to make it easier for the user to edit the priors as they see fit.**
+
+Let's get the simple ones out of the way:
+
+* `ohnc`: the number of observed PBT-assigned samples in each group. The wild groups are given counts of 0
+* `piTotInitial`: the initial values to use as the proportions of each group in the strata. Default is to use all equal proportions.
+* `oUTInitial`: the initial value to use for the count of PBT-unassigned fish that belong to each group. The default is to initiate all PBT-unassigned fish as being wild, and so belonging to their respective wild GSI group.
+* `groups`: the integers that are used internally to represent each group. Working with integers is more efficient than character strings.
+* `nPBT`: the number of PBT groups in the strata
+* `GSI_values`: the integers that are used internally to represent each GSI assignment category.
+* `gsiUT`: the observed GSI assignments for each PBT-untagged sample
+* `ohnc_gsi`: a matrix with rows representing PBT groups and columns represent GSI assignment categories. The values in the matrix correspond to the observed number of samples that were PBT-assigned to a given group and had a GSI assignment to a given GSI category.
+* `pi_gsiInitial`: the initial values to use as the proportions of fish in each group that have observed GSI assignments belonging to each cateogry. Default is to use equal proportions for the PBT groups, and the wild GSI groups are fixed at 1 for their GSI assignment.
+* `initZ`: These are the initial groups to consider the PBT-unassigned samples as belonging to. Default is to initiate with them all as wild.
+* `t`: These are the tag rates for all groups. Wild groups are given tag rates of 0.
+
+And now, let's look at the one's you may want to modify, the priors:
+```{r}
+mainInput[[1]]$piTotPrior
+```
+
+`piTotPrior` is a named vector with the alphas of the prior Dirichlet distribution for the composition of the strata. The names are not used internally, they are supplied to make editing this prior easier for the user. The PBT groups are listed first, and the wild groups (by GSI assignment) are listed second.
+
+```{r}
+mainInput[[1]]$prior_pi_gsi
+```
+
+`prior_pi_gsi` is a matrix with rows correspondign to PBT groups and columns corresponding to GSI assignment categories. Each PBT group has a Dirichlet prior and the values in a row are the alphas for this prior.
+
+
+Now, let's go over the inputs related to variables other than PBT and GSI assignments that are used by the algorithm to estimate composition. These first three are lists, with the number of entries corresponding to the number of variables.
+
+* `values`: The integers used internally to represent each category
+* `pi_VInitial`: The initial values of the proportions of each group that belong to each category of the variable.
+* `pi_Vohnc`: A matrix with rows representing the groups and columns representing the categories of the variable. Values are the counts of PBT-assigned samples in each group that belong to each category of the variable.
+
+```{r}
+mainInput[[1]]$pi_Vprior
+```
+`pi_Vprior` is a matrix with rows corresponding to the groups (PBT and wild GSI) and columns corresponding to the categories of the variable. Each group has a Dirichlet prior and the values in a row are the alphas for this prior.
+
+```{r}
+head(mainInput[[1]]$v_ut)
+```
+
+v_ut is a matrix with each variable being a column and each row being a PBT-unassigned sample. The values correspond to the category that a given sample belongs to. Missing data is given a value of -9.
+
+
+The inputs:
+
+* `valuesOth`
+* `pi_VInitialOth`
+* `pi_VohncOth`
+* `pi_VpriorOth`
+* `v_utOth`
+
+all correspond to the inputs named the same but without the "Oth" suffix except that they are for variables whose composition you want to estiamte, but you do not want to use to inform the other estimates. A typical reason for doing this would be that you want to estimate the compostion for two variables (say age and sex), but these variables are not independent of each other. So, you can specify one of them with `variableCols` and the others with `variableColsOth` when you are building your input.
+
+And now, the remaining inputs:
+* `groupsKey`, `GSIkey`, `variKey`, `variKeyOth`: these all show the correspondence between the integers used internally to represent various values and the actual values used in the input dataset.
+* `AI`: This is TRUE is the inputs represent ad-intact fish and false if they represent ad-clipped fish. This is not used when runnign the MCMC sampler, but it is used by downstream wrapper scripts that combine the results of the MCMC sampler with estiamtes of the proportions of fish that are clipped and unclipped.
+* `strataName`: The name of the strata that the samples represented by this input are from 
+
+## Now, run the model and look at the structure of the results
+
+```{r}
+propEstimates <- estimStrataMCpbt(mainInput, iter = 3000, burnIn = 500, thin = 1, seed = 7)
+str(propEstimates)
+```
+
+The results are a list with an entry for each strata. piV and piVOth and lists with an entry for each variable. Each entry is a matrix, with rows being iterations of the MCMC sampler, and columns being different quantities being estimated.
+
+* `piTot`: columns are different groups (PBT and wild). Column names are group names. Values are proportions of the total population that belong to each group.
+* `z`: columns are PBT-unassigned individuals. Values are the group they are assigned to (as the integer internally used to represent that group).
+* `piGSI`: columns are different groups (PBT and wild) and GSI assignment categories. Column names are "group name"_"GSI assignment". Values are the proportion of that group that GSI assigns to a given category.
+* `piV[[i]]` and `piVOth[[i]]`: columns are different groups (PBT and wild) and categories of the given variable. Column names are "group name"_"category". Values are the proportion of that group that belongs to a given category.
+
+
+This may be all you need, if you are just interested in the proportions. However, if you want to multiply by a total population size and get counts, we can do that:
+
+
+```{r}
+nPost <- nrow(propEstimates[[1]]$piTot)
+popSizeEstimates <- list() # a list with one entry per strata
+popSizeEstimates <- list(rep(3000, nPost))
+
+countEstimates <- multByEscapement(mainInput, mainRes = propEstimates, popSizes = popSizeEstimates, writeSummary = FALSE)
+str(countEstimates)
+```
+
+You'll first see there is a big list called `strataEstimates`. This has estimates for each strata, and the structure of each entry is analagous to the other items in the list, which are detailed below:
+
+```{r}
+head(countEstimates$totClipUnclip)
+```
+
+`totClipUnclip` is the number of fish that are ad-clipped and ad-intact, with rows being iterations of the MCMC sampler. Here, all of our fish are ad-intact.
+
+```{r}
+head(countEstimates$totPiTotEstim)
+```
+
+`totPiTotEstim` is the number of fish belonging to each group.
+
+```{r}
+head(countEstimates$totGSIestim)
+```
+
+`totGSIestim` is the number of fish belonging to each group and having a given GSI assignment.
+
+
+```{r}
+head(countEstimates$totpiVestim[[1]])
+```
+
+The entries of `totpiVestim` are matrices with the number of fish belonging to each group and given category of the variable you are fitting.

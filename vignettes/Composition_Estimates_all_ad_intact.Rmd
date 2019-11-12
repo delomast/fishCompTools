@@ -1,0 +1,178 @@
+---
+title: "Composition Estimates with MCMC (ad-intact or no ad-clip information)"
+author: "Thomas Delomas"
+date: "9-16-2019"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Composition_Estimates_MCMC_ad_intact}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(devMCpbt)
+```
+
+## Introduction
+This document will walk through how to estimate composition of a mixture of all ad-intact fish by PBT and GSI groups using a Bayesian approach. **if you do not separate wild origin fish by GSI assignments, you can create a dummy variable that gives all fish  (including PBT-assigned fish) the same GSI assignment**
+This may be encountered in multiple scenarios, such as:
+
+* The entire population you are sampling is ad-intact
+* You estimate population sizes separately for ad-intact and ad-clipped fish
+* You do not differentiate between ad-intact and ad-clipped (so you can analyze them as if they are all ad-intact)
+* The species does not have an adipose fin (so you can analyze them as if they are all ad-intact)
+
+This document will work through a scenario where the samples are grouped into three strata.
+
+## First, get some data
+First, we will generate some data using the built in data-simulation function.
+
+```{r}
+
+# define the unknown "true" proportions at which fish in each
+# PBT group assign to the different GSI groups
+pbtGSImat <- matrix(c(.1, .8, .1,.8, .1, .1,.1, .1, .8), nrow = 3, ncol = 3, byrow = TRUE)
+
+# now generate three strata from identical parameters
+multStratData <- data.frame()
+for(i in 1:3){
+	tempData <- generatePBTGSIdata(sampRate = .2, censusSize = 3000, relSizePBTgroups = c(1,2,3), tagRates = c(.8, .85,.9), physTagRates = 0, true_clipped = 0, true_noclip_H = .4, true_wild = .6, relSizeGSIgroups = c(1,2,1), PBT_GSI_calls = pbtGSImat)
+	trapData <- tempData[[1]]
+	trapData$Strata <- i
+	multStratData <- rbind(multStratData, trapData)
+}
+tags <- tempData[[2]] # get the tag rates for the PBT groups
+multStratData$GSI <- paste0("GSIgroup_", multStratData$GSI)
+
+head(multStratData)
+```
+
+Now we have a dataframe named `multStratData` with a column describing whether a fish is ad-clipped or ad-intact 
+(values of AD and AI, respectively), a column denoting if the fish has a physical tag that 
+identifies it as hatchery origin (ignore this column for this vignette, the data we generated
+has no physical tags), a column with the 
+PBT assignment (Unassigned means it was attempted to be assigned, but did not have a match),
+a column with GSI assignments, and a column giving the strata that sample belongs to.
+
+```{r}
+head(tags)
+```
+
+We also have a dataframe named `tags` with the names of the PBT groups (matching the labels in the 
+GenParentHatchery column) and the tag rates (successful genotyping rates) for those
+groups. 
+
+
+## Second, prep the data for the estimation function
+Now we need to prepare the data in the way the estimation function can use it. We will
+do this using a function in the package that takes the two dataframes we created above
+as input.
+
+```{r}
+# note that we are using AI=TRUE because we are looking at the composition
+#  of ad-intact fish
+mainInput <- prepStrata(multStratData, tags, GSIcol = "GSI", PBTcol = "GenParentHatchery", strataCol = "Strata", adFinCol = "AdClip", AI = TRUE)
+```
+
+This has created an input list that has one item for each strata. Each item (strata) has
+the same components, just with different data. This is an important point, because the
+priors can be set to be different for each strata, if desired (and if you want all the
+priors changed, you must do it for all strata). Here is the structure of the input for the first strata:
+
+```{r}
+str(mainInput[[1]])
+```
+
+*For details on the structure of the input, please see the vignette titled "Structure of input and output of MCMC wrapper functions"*
+
+
+##Third, we generate the estimates
+
+We now generate the estimates of composition for each strata. These are estimates of the
+proportion of fish in each strata that belong to different groups, in our case PBT and
+GSI groups.
+
+
+
+```{r}
+# specifying a seed to make the anlaysis reproducible
+# running  iterations with  burn-in and no thinning
+# this will yield  recorded MCMC samples
+propEstimates <- estimStrataMCpbt(mainInput, iter = 3000, burnIn = 500, thin = 1, seed = 7)
+```
+
+The results are structured as a list for each strata:
+
+```{r}
+str(propEstimates)
+```
+
+We can check for convergence through multiple means, such as plotting the estimates for our parameters of interest. 
+Here, we will plot a few of the stock compositions in strata 1 to demonstrate:
+
+```{r, fig.height = 3, fig.width = 7}
+plot(propEstimates[[1]]$piTot[,1])
+plot(propEstimates[[1]]$piTot[,5])
+```
+
+*For details on the structure of the results, please see the vignette titled "Structure of input and output of MCMC wrapper functions"*
+
+
+## Fourth, we multiply by the estimated population size
+
+In some situations, you will have a population size estimate with a particular distribution
+you can sample from, while in other cases you will just have a known (or assumed) population
+size. In this case, we will assume a population size of 3000 in strata 1 and 2, but a size of
+1500 in strata 3. We turn this into an input the function can use as such:
+
+```{r}
+nPost <- nrow(propEstimates[[1]]$piTot)
+popSizeEstimates <- list() # a list with one entry per strata
+popSizeEstimates <- list(rep(3000, nPost),
+					  rep(3000, nPost),
+					  rep(1500, nPost))
+# note that if our population size was an estimate from a given distribution,
+#   we would take nPost samples from this distribution for each strata, and
+#   organize them as a list, just as we are doing here
+```
+
+Now that we have the population size input, we can use a function in the package
+to multiply the population sizes by the estimated proportions. If we use the 
+`writeSummary = TRUE` option, a group of summary files with CI's will be
+written to the working directory.
+
+```{r}
+countEstimates <- multByEscapement(mainInput, mainRes = propEstimates, popSizes = popSizeEstimates, writeSummary = TRUE)
+```
+
+
+
+Now we have two files in the working directory, one summarizing the estimated number of 
+hatchery and wild fish, and the other summarizing the estimated numbers of each PBT and
+wild-GSI group. The CI's in these files are symmetric CI's calculated using R's
+`quantile` function. We can read them into R and take a look at them if we want:
+
+```{r}
+rearType <- read.table("RearTypeSummary.txt", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+stockComp <- read.table("StockCompSummary.txt", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+head(rearType)
+head(stockComp)
+file.remove(c("RearTypeSummary.txt", "StockCompSummary.txt")) #clean up unneeded output files
+```
+
+The variable `countEstimates` has the raw estimates calculated by multiplying the 
+samples from the posterior as appropriate, and can be used to calculate other quantities
+of interest or to calculate CIs using other methods. 
+
+```{r}
+str(countEstimates)
+```
+
+*For details on the structure of the results, please see the vignette titled "Structure of input and output of MCMC wrapper functions"*

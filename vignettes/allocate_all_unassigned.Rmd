@@ -1,0 +1,68 @@
+---
+title: "Allocate All Unassigned"
+author: "Thomas Delomas"
+date: "October 12, 2019"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Composition_Estimates_with_MLE}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(devMCpbt)
+```
+
+## Introduction
+This document will walk through how to estimate composition of a mixture of all ad-clipped fish by PBT and GSI groups under the assumption that all fish in your sample belong to one of your PBT groups. In other words, the "true" number of Unassigned fish should be 0.  **if you do not calculate GSI assignments for fish, you can create a dummy variable that gives all fish  (including PBT-assigned fish) the same GSI assignment.**
+
+We'll be assuming these fish are all ad-clipped, but a similar procedure can be carried out for ad-intact as well by adjust the appropriate options.
+
+## First, get some data
+First, we will generate some data using the built in data-simulation function.
+
+```{r}
+set.seed(130) #make generated data reproducible
+# define the unknown "true" proportions at which fish in each
+# PBT group assign to the different GSI groups
+pbtGSImat <- matrix(c(.1, .8, .1,.8, .1, .1,.1, .1, .8), nrow = 3, ncol = 3, byrow = TRUE)
+
+# now generate three strata from identical parameters
+multStratData <- data.frame()
+for(i in 1:3){
+	tempData <- generatePBTGSIdata(sampRate = .2, censusSize = 3000, relSizePBTgroups = c(1,2,3), tagRates = c(.8, .85,.9), physTagRates = 0, true_clipped = 0, true_noclip_H = 1, true_wild = 0, relSizeGSIgroups = c(1,2,1), PBT_GSI_calls = pbtGSImat)
+	trapData <- tempData[[1]]
+	trapData$Strata <- i
+	multStratData <- rbind(multStratData, trapData)
+}
+tags <- tempData[[2]] # get the tag rates for the PBT groups
+multStratData$GSI <- paste0("GSIgroup_", multStratData$GSI)
+multStratData$AdClip <- "AD" #flip from unclipped to clipped
+
+head(multStratData)
+```
+
+## Second, prep the data for the estimation function
+Now we need to prepare the data in the way the estimation function can use it. We will do this using a function in the package that takes the two dataframes we created above as input.
+
+```{r}
+#### important note: symPrior=0, this will make modifying the input in the next step easier
+# note that we are using AI=FALSE because we are looking at the composition
+#  of ad-clipped fish
+mainInput <- prepStrata(multStratData, tags, GSIcol = "GSI", PBTcol = "GenParentHatchery", strataCol = "Strata", adFinCol = "AdClip", AI = FALSE, symPrior = 0)
+```
+
+This has created an input list that has one item for each strata. Each item (strata) has the same components, just with different data. Here is the structure of the input for the first strata:
+
+```{r}
+str(mainInput[[1]])
+```
+
+To run the estimates the way we want in this scenario, we have to modify the priors and initial values for each strata. Essentially, we will tell it that all the GSIgroup_#'s are 0. This means any Unassigned fish must be untagged fish belonging to one of our PBT groups.
