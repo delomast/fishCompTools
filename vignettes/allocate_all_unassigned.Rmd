@@ -49,6 +49,29 @@ multStratData$AdClip <- "AD" #flip from unclipped to clipped
 head(multStratData)
 ```
 
+Since you have actual data, if it's in the format you would use for `scobi_deux`, you can load it in using the below example commands:
+
+```{r, eval=FALSE}
+#tag rates
+tags <- read.csv("PBT tag rates.csv", stringsAsFactors = FALSE)
+tags <- tags[tags[,1] != "Unassigned",] #remove Unassigned from tag rate dataframe
+
+#trap data
+multStratData <- read.csv("2018RearHscobi.csv", stringsAsFactors = FALSE)
+
+#window counts
+window <- read.csv("Clip_window.csv", stringsAsFactors = FALSE)
+
+# The MCpbt function expects a strata column in the trap data. So next, we add it using the window count file.
+### NOTE this code assumes you have a column named "WeekNumber"
+
+multStratData$Strata <- NA #initialize column
+for(i in 1:nrow(window)){
+	multStratData$Strata[multStratData$WeekNumber == window[i,1]] <- window[i,3]
+}
+
+```
+
 ## Second, prep the data for the estimation function
 
 There are a few different ways you can have the function determine what the GSI assignment composition of PBT groups is. First decide whether to include data from other strata or not:
@@ -162,10 +185,7 @@ We can now multiply by our population size to turn these into numbers of fish.
 
 
 The function is set up to allow a user to propagate uncertainty in the escapement estimates. Since at BONN it is assumed the window count is the population size, we will just give it the same number over and over. This block of code takes the window count file (in scobi_deux format) and generates the window count numbers in the format the function needs.
-```{r, eval=FALSE}
-#load the window count file
-window <- read.csv("Clip_window.csv", stringsAsFactors = FALSE)
-```
+
 ```{r, echo=FALSE}
 window <- data.frame(weekNumber = c(1,2,3), count = c(3000,3000,3000), strata = c(1,2,3))
 ```
