@@ -1,7 +1,7 @@
 ---
 title: "Allocate All Unassigned"
 author: "Thomas Delomas"
-date: "October 12, 2019"
+date: "November 14, 2019"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Allocate All Unassigned}
@@ -21,7 +21,7 @@ library(fishCompTools)
 ```
 
 ## Introduction
-This document will walk through how to estimate composition of a mixture of all ad-clipped fish by PBT and GSI groups under the assumption that all fish in your sample belong to one of your PBT groups. In other words, the "true" number of Unassigned fish should be 0.  **if you do not calculate GSI assignments for fish, you can create a dummy variable that gives all fish  (including PBT-assigned fish) the same GSI assignment.**
+This document will walk through how to estimate composition of a mixture of all ad-clipped fish by PBT group under the assumption that all fish in your sample belong to one of your PBT groups. In other words, the "true" number of fish that don't belong to one of your PBT groups is 0.  **This example uses GSI assignments, but if you do not calculate GSI assignments for fish, you can create a dummy variable that gives all fish  (including PBT-assigned fish) the same GSI assignment.**
 
 We'll be assuming these fish are all ad-clipped, but a similar procedure can be carried out for ad-intact as well by adjust the appropriate options.
 
@@ -50,19 +50,175 @@ head(multStratData)
 ```
 
 ## Second, prep the data for the estimation function
-Now we need to prepare the data in the way the estimation function can use it. We will do this using a function in the package that takes the two dataframes we created above as input.
 
-```{r}
+There are a few different ways you can have the function determine what the GSI assignment composition of PBT groups is. First decide whether to include data from other strata or not:
+
+1. For a given PBT group, consider GSI assignments that are observed for fish in that PBT group in the current strata
+1. For a given PBT group, consider GSI assignments that are observed for fish in that PBT group in any strata
+
+Now we need to prepare the data in the way the estimation function can use it. We will do this using a function in the package that takes the two dataframes we created above as input. 
+
+### For a given PBT group, consider GSI assignments that are observed for fish in that PBT group in the current strata
+```{r, eval=FALSE}
+## Not run in this vignette
 #### important note: symPrior=0, this will make modifying the input in the next step easier
 # note that we are using AI=FALSE because we are looking at the composition
 #  of ad-clipped fish
 mainInput <- prepStrata(multStratData, tags, GSIcol = "GSI", PBTcol = "GenParentHatchery", strataCol = "Strata", adFinCol = "AdClip", AI = FALSE, symPrior = 0)
 ```
 
-This has created an input list that has one item for each strata. Each item (strata) has the same components, just with different data. Here is the structure of the input for the first strata:
-
+### For a given PBT group, consider GSI assignments that are observed for fish in that PBT group in any strata
 ```{r}
-str(mainInput[[1]])
+#### important note: symPrior=0, this will make modifying the input in the next step easier
+# note that we are using AI=FALSE because we are looking at the composition
+#  of ad-clipped fish
+mainInput <- prepStrata(multStratData, tags, GSIcol = "GSI", PBTcol = "GenParentHatchery", strataCol = "Strata", adFinCol = "AdClip", AI = FALSE, symPrior = 0, GSIgroups = sort(unique(multStratData$GSI)))
+
+# now we are combining information about GSI assignments of PBT groups across strata
+gsiCats <- sort(unique(multStratData$GSI))
+pbtCats <- sort(unique(multStratData$GenParentHatchery))
+pbtCats <- pbtCats[pbtCats != "Unassigned"]
+gsiAllStrata <- matrix(0, nrow = length(pbtCats), ncol = length(gsiCats))
+colnames(gsiAllStrata) <- gsiCats
+rownames(gsiAllStrata) <- pbtCats
+## here we are counting GSI assignments of all PBT-assigned fish in the dataset
+for(p in pbtCats){
+	for(g in gsiCats){
+		gsiAllStrata[p,g] <- sum(multStratData$GenParentHatchery == p & multStratData$GSI == g)
+	}
+}
+
+#here we are incorporation the assignemnts from other strata as a prior
+for(i in 1:length(mainInput)){
+	p <- rownames(mainInput[[i]]$prior_pi_gsi)
+	g <- colnames(mainInput[[i]]$prior_pi_gsi)
+	mainInput[[i]]$prior_pi_gsi <- gsiAllStrata[p,g] - mainInput[[i]]$ohnc_gsi
+}
 ```
 
-To run the estimates the way we want in this scenario, we have to modify the priors and initial values for each strata. Essentially, we will tell it that all the GSIgroup_#'s are 0. This means any Unassigned fish must be untagged fish belonging to one of our PBT groups.
+Now, we have to decide whether we want to consider that fish in a given PBT group may have GSI assignments that were not observed amongst the fish PBT-assigned to that group in our dataset. If we do, we can modify the prior to allow this. Below, it is shown how you can add 1/N to the alpha values of the relevant Dirichlet prior to accomplish this (where N is the number of GSI categories). Values other than 1/N can be added. The effect of using alternative values is beyond the scope of this vignette.
+
+```{r, eval=FALSE}
+## NOT run in this vignette
+for(i in 1:length(mainInput)){
+	ng <- ncol(mainInput[[i]]$prior_pi_gsi)
+	mainInput[[i]]$prior_pi_gsi <- mainInput[[i]]$prior_pi_gsi + (1/ng)
+}
+```
+
+
+### Now continue modifying the input
+
+This has created an input list that has one item for each strata.
+
+To run the estimates the way we want, we have to modify the prior and initial values for each strata. Essentially, we will tell it that all the GSIgroup_#'s are 0. This means any Unassigned fish must be untagged fish belonging to one of the PBT groups.
+
+We set `symPrior=0` earlier, which takes care of the prior, now we have to modify the initial values. We are setting them so that the initial values for all the "Unassigned" groups are 0.
+
+```{r}
+for(i in 1:length(mainInput)){
+	pbtGroups <- mainInput[[i]]$groups[1:mainInput[[i]]$nPBT]
+	mainInput[[i]]$piTotInitial <- mainInput[[i]]$ohnc / sum(mainInput[[i]]$ohnc)
+	for(j in 1:length(mainInput[[i]]$initZ)){
+		tempGroups <- mainInput[[i]]$ohnc_gsi[,mainInput[[i]]$gsiUT[j]] + mainInput[[i]]$prior_pi_gsi[,mainInput[[i]]$gsiUT[j]]
+		tempGroups <- which(tempGroups > 0)
+		if(length(tempGroups) == 0) print("Error, GSI assignment not compatible with the prior or observed PBT-assigned fish")
+		mainInput[[i]]$initZ[j] <- sample(tempGroups, 1)
+	}
+	mainInput[[i]]$oUTInitial <- rep(0, length(mainInput[[i]]$oUTInitial))
+	for(g in 1:length(pbtGroups)){
+		mainInput[[i]]$oUTInitial[g] <- sum(mainInput[[i]]$initZ == pbtGroups[g])
+	}
+}
+```
+
+
+Everything is now set up, so...
+
+## Calculate the estimates
+
+```{r}
+# specifying a seed to make the anlaysis reproducible
+# running 10000 iterations with 1000 burn-in and no thinning
+propEstimates <- estimStrataMCpbt(mainInput, iter = 10000, burnIn = 1000, thin = 1, seed = 7)
+```
+
+We now have estimates in terms of proportions. You can look at convergence and mixing of the chain here if you want. One simple option is just to look at the trace of each groups' population size in each strata:
+
+```{r, eval=FALSE}
+## This will create a pdf file with plots for you to look through
+pdf("traces_to_check.pdf", width = 11, height = 8.5)
+for(i in 1:length(propEstimates)){
+	tempPiTot <- propEstimates[[i]]$piTot
+	nPBT <- mainInput[[i]]$nPBT
+	for(j in 1:nPBT){
+		plot(tempPiTot[,j], type = "l", cex.axis = 2)
+	}
+}
+dev.off()
+```
+
+We can now multiply by our population size to turn these into numbers of fish.
+
+
+The function is set up to allow a user to propagate uncertainty in the escapement estimates. Since at BONN it is assumed the window count is the population size, we will just give it the same number over and over. This block of code takes the window count file (in scobi_deux format) and generates the window count numbers in the format the function needs.
+```{r, eval=FALSE}
+#load the window count file
+window <- read.csv("Clip_window.csv", stringsAsFactors = FALSE)
+```
+```{r, echo=FALSE}
+window <- data.frame(weekNumber = c(1,2,3), count = c(3000,3000,3000), strata = c(1,2,3))
+```
+```{r}
+#make the window count input required
+numMCMC <- nrow(propEstimates[[1]]$piTot) # this gets the number of MCMC samples we took
+strataOrder <- sapply(mainInput, function(x) return(x$strataName))
+
+escapementByStrata <- list()
+for(s in strataOrder){
+	total <- sum(window[window[,3] == s,2])
+	escapementByStrata[[s]] <- rep(total, numMCMC)
+}
+
+```
+
+Then, we use the built in function to multiply everything by the window count.
+
+```{r}
+countEstimates <- multByEscapement(mainInput, mainRes = propEstimates, popSizes = escapementByStrata, writeSummary = FALSE)
+```
+
+What we are really interested in is just one entry of `countEstimates`, so let's pull it out and name it separately for ease.
+
+```{r}
+runEstimate <- countEstimates$totPiTotEstim
+head(runEstimate)
+```
+
+`runEstimate` has the estimated number of fish in each group for the total of the run in each iteration of the MCMC sampler that we saved. Notice that the GSIgroup_# are all 0, because we constrained them to be as such. Now, if you just want numbers and CIs for each hatchery, you can:
+
+```{r}
+#point estimates
+print("Point Estimates")
+apply(runEstimate, 2, mean)
+
+#CIs
+print("CIs")
+alpha <- .1
+apply(runEstimate, 2, quantile, c(alpha/2, 1-(alpha/2)))
+```
+
+If you want to combine specific hatcheries into larger groups, you just add columns. For example, to get a point estimate and CI for pbtGroup1 + pbtGroup2:
+
+```{r}
+#point estimates
+print("Point Estimate")
+mean(runEstimate[,"pbtGroup1"] + runEstimate[,"pbtGroup2"])
+
+#CIs
+print("CI")
+alpha <- .1
+quantile(runEstimate[,"pbtGroup1"] + runEstimate[,"pbtGroup2"], c(alpha, 1-(alpha/2)))
+```
+
+Adding columns manually can be pretty tedious if you have a lot of combining to do. So, let me know if that is the case, and I can help put together a block of code that will take an input file showing which groups to combine and automate the process.
