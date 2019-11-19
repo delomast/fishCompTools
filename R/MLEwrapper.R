@@ -1,9 +1,9 @@
 #' Find maximum likelihood estimates for composition
-#' 
+#'
 #' The likelihood is maximized using \code{optim} and some typically close, but quick to calculate, starting values.
 #' If estimating composition of a separate variable, all samples with missing data for this variable must be removed
 #' prior to running this function.
-#' 
+#'
 #' @param trapData a dataframe with a rwo for each individual and columns for GSI assignment, PBT assignment, etc.
 #' @param tags a dataframe with the first column containing names of PBT groups, and the second column containing
 #'   tag rates
@@ -17,25 +17,25 @@
 #'   and a warning is issued.
 #' @param variableCols name of column containing the variable to estimate composition for (optional)
 #' @param ... other arguments to pass to \code{optim}
-#' 
+#'
 #' @export
 
 MLEwrapper <- function(trapData, tags, GSIcol, PBTcol, strataCol, adFinCol, AI = TRUE, optimMethod = "Nelder-Mead",
 							  variableCols = NULL, ...){
-	
+
 	# determine if variables used or not
 	varBool <- !is.null(variableCols) #TRUE if variables are used
-	
+
 	# input checking
 	if(varBool && length(variableCols) > 1){
 		stop("variableCols must be either NULL or only one variable")
 	}
-	
+
 	#don't need all the output from this, but it includes most things we need
 	allInput <- prepStrata(trapData, tags, GSIcol, PBTcol, strataCol, variableCols = variableCols, variableColsOth = c(), adFinCol,
 								AI = TRUE, GSIgroups = NA,
 									 variableValues = NA, variableValuesOth = NA, verbose = FALSE, symPrior = .5)
-	
+
 	estimates <- list()
 	#get estimates for each strata
 	for(input in allInput){
@@ -51,8 +51,8 @@ MLEwrapper <- function(trapData, tags, GSIcol, PBTcol, strataCol, adFinCol, AI =
 
 		#define some values used in the function
 		nGSI <- length(input$groups) - nPBT
-		
-		
+
+
 		#pull variables values out of input
 		ohnc_var <- data.frame() #define in case no PBT groups
 		if(varBool){
@@ -62,13 +62,12 @@ MLEwrapper <- function(trapData, tags, GSIcol, PBTcol, strataCol, adFinCol, AI =
 			for(v in 1:nCat){
 				val <- input$values[[1]][v]
 				for(g in 1:nGSI){
-					gVal <- input$GSI_values[g]
-					utVar[g,v] <- sum(input$v_ut[,1] == val & input$gsiUT == gVal)
+					utVar[g,v] <- sum(input$v_ut[,1] == val & input$gsiUT == input$GSI_values[g])
 				}
 			}
 		}
 
-		
+
 		# determine reasonable starting values
 		#for piTot
 		start_piTot <- c()
@@ -99,6 +98,7 @@ MLEwrapper <- function(trapData, tags, GSIcol, PBTcol, strataCol, adFinCol, AI =
 				for(val in input$values[[1]]){
 					temp <- c(temp, sum(input$gsiUT == input$GSI_values[i] & input$v_ut[,1] == val))
 				}
+				temp[temp < 1] <- .1
 				start_piVar <- c(start_piVar, temp)
 			}
 		}
@@ -106,22 +106,27 @@ MLEwrapper <- function(trapData, tags, GSIcol, PBTcol, strataCol, adFinCol, AI =
 
 		# find mle
 		if(varBool){
+			# print(numDeriv::grad(function(u) flex_negllh_var(u, nPBT = nPBT, nGSI = nGSI, ohnc = ohnc, t = t, ohnc_gsi = ohnc_gsi,
+			# 		 utVar = utVar, ohnc_var = ohnc_var, nCat = nCat),
+			# 					c(start_piTot, start_piGSI, start_piVar))) #testing gradient function
+
+
 			tempFit <- optim(c(start_piTot, start_piGSI, start_piVar), flex_negllh_var, method = optimMethod, ...,
 					 #arguments to pass to flex_negllh
-					 nPBT = nPBT, nGSI = nGSI, ohnc = ohnc, t = t, utGSI = utGSI, ohnc_gsi = ohnc_gsi,
+					 nPBT = nPBT, nGSI = nGSI, ohnc = ohnc, t = t, ohnc_gsi = ohnc_gsi,
 					 utVar = utVar, ohnc_var = ohnc_var, nCat = nCat)
 		} else {
-			
-			# print(numDeriv::grad(function(u) flex_negllh_allGSI(u, nPBT = nPBT, nGSI = nGSI, ohnc = ohnc, t = t, utGSI = utGSI, ohnc_gsi = ohnc_gsi), 
+
+			# print(numDeriv::grad(function(u) flex_negllh_allGSI(u, nPBT = nPBT, nGSI = nGSI, ohnc = ohnc, t = t, utGSI = utGSI, ohnc_gsi = ohnc_gsi),
 			# 					c(start_piTot, start_piGSI))) #testing gradient function
-			
+
 			tempFit <- optim(c(start_piTot, start_piGSI), flex_negllh_allGSI, method = optimMethod, ...,
 								 #arguments to pass to flex_negllh
 								 nPBT = nPBT, nGSI = nGSI, ohnc = ohnc, t = t, utGSI = utGSI, ohnc_gsi = ohnc_gsi)
 			# print(tempFit) #testing
 		}
 		if(tempFit$convergence != 0) cat("\nOptimizer gave convergence code of", tempFit$convergence, "in strata", input$strataName, "\n")
-		
+
 		# return(tempFit) #testing
 
 
@@ -130,7 +135,7 @@ MLEwrapper <- function(trapData, tags, GSIcol, PBTcol, strataCol, adFinCol, AI =
 		ptestim <- tempFit$par[1:(nPBT + nGSI)]
 		ptestim <- ptestim / sum(ptestim)
 		names(ptestim) <- input$groupsKey[,1]
-		
+
 		# piGSI
 		subParams <- tempFit$par[(nPBT + nGSI + 1):length(tempFit$par)]
 		piGSItemp <- matrix(0, nrow = (nPBT), ncol = (nGSI)) #initiate with zeros
@@ -144,7 +149,7 @@ MLEwrapper <- function(trapData, tags, GSIcol, PBTcol, strataCol, adFinCol, AI =
 		piGSItemp <- rbind(piGSItemp, diag(nGSI)) #add GSI groups as fixed 100%
 		colnames(piGSItemp) <- input$GSIkey[,1]
 		rownames(piGSItemp) <- input$groupsKey[,1]
-		
+
 		#piVar
 		piVar <- matrix(nrow = 0, ncol = 0)
 		if(varBool){
@@ -157,9 +162,9 @@ MLEwrapper <- function(trapData, tags, GSIcol, PBTcol, strataCol, adFinCol, AI =
 			colnames(piVar) <- input$variKey[[1]][,1]
 			rownames(piVar) <- input$groupsKey[,1]
 		}
-		
+
 		estimates[[input$strataName]] <- list(piTot = ptestim, piGSI = piGSItemp, piVar = piVar, strataName = input$strataName)
 	}
-	
+
 	return(estimates)
 }
