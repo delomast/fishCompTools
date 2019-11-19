@@ -114,6 +114,49 @@ Now, we have the number of fish in each strata, and to get the number of fish in
 colSums(strataComp)
 ```
 
+## Confidence intervals
+To get confidence intervals for these estimates, we can settle for non-parametric bootstrapping. This is computationally intensive, so it may take a while depending on how much data you have. We will set up a simple `for` loop to perform the bootstrapping, and we will save the estiamtes from each iteration. In this example, we are only interested in `piTot`, but if you were interested in the other estimates, you would want to save them as well. We are also only going to generate confidence intervals for all strata combined, but you could save the results for each strata separately if you wanted a confidence interval for each strata.
+
+```{r}
+# the number of bootstraps we will perform
+bootRep <- 50 # NOTE: this number is set low for the vignette to run quickly. You will want to perform many more repetitions.
+# a data structure to save the estimates
+#each row is an estimate, each column is a group
+bootPiTot <- matrix(0, nrow = bootRep, ncol = 6)
+colnames(bootPiTot) <- colnames(strataComp) #pulling the group names from strataComp
+#separate data by strata
+dataByStrata <- list()
+for(s in unique(multStratData$Strata)){
+	dataByStrata[[as.character(s)]] <-  multStratData[multStratData$Strata == s,]
+}
+for(b in 1:bootRep){
+	#resample each strata separately
+	bootData <- data.frame()
+	for(d in dataByStrata){
+		bootData <- rbind(bootData, d[sample(1:nrow(d), nrow(d), replace = TRUE),])
+	}
+	#get estimates for each strata with resampled data
+	bootEst <- MLEwrapper(bootData, tags = tags, GSIcol = "GSI", PBTcol = "GenParentHatchery", strataCol = "Strata", adFinCol = "AdClip", AI = TRUE, optimMethod = "L-BFGS-B", variableCols = NULL, gr = params_grad, lower=10^-12, control = list(maxit=10000))
+	#now multiply be population size
+	bootStrataComp <- list(
+			bootEst[[1]]$piTot * 3000,
+			bootEst[[2]]$piTot * 3000,
+			bootEst[[3]]$piTot * 1500
+		)
+	#now sum up across strata and add to bootPiTot
+	for(g in colnames(bootPiTot)){
+		tempSum <- 0
+		for(strat in bootStrataComp){
+			# removign NA in case group does not exist in this resample
+			tempSum <- sum(tempSum, strat[g], na.rm = TRUE)
+		}
+		bootPiTot[b,g] <- tempSum
+	}
+}
+#now, let's calculate a 90% CI
+apply(bootPiTot, 2, quantile, c(.05, .95))
+
+```
 
 ## Now, let's add a variable
 
