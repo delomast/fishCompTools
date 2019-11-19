@@ -1,12 +1,12 @@
 #' this calculates the gradient with respect to the params being optimized when only PBT
 #' and GSI information are used (no other variables)
-#' 
+#'
 #' this is not intended for direct user-level use, but it is exported to allow
 #' the user to optionally specify it as a argument to pass to \code{optim}
-#' when using \code{MLEwrapper}. I recommend using it unless you have a very specific
+#' when using \code{MLEwrapper}. I recommend using it unless you have a specific
 #' reason not to.
-#' 
-#' uses the output of test_gradient (chain rule for partial derivatives)
+#'
+# uses the output of test_gradient
 
 #' @param params vector of paramaters to optimize
 #' @param nPBT number of PBT groups to estimate
@@ -15,7 +15,7 @@
 #' @param t vector of tag rates for all PBT and GSI groups (gsi groups should be 0)
 #' @param utGSI vector of number of un-PBT assigned fish in each GSI group
 #' @param ohnc_gsi matrix of counts of fish GSI assigned to various groups
-#' 
+#'
 #' @export
 
 params_grad <- function(params, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi){
@@ -35,10 +35,10 @@ params_grad <- function(params, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi){
 		}
 	}
 	piGSItemp <- rbind(piGSItemp, diag(nGSI)) #add GSI groups as fixed 100%
-	
+
 	#get partial derivs with respect to piTot and piGSI
 	firstLevel <- test_gradient(piTot, piGSItemp, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi)
-	
+
 	gradient <- rep(NA, length(params))
 	#calc gradient of piTot with respect to params
 	par_piTot <- params[1:(nPBT + nGSI)]
@@ -54,10 +54,10 @@ params_grad <- function(params, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi){
 		}
 		gradient[i] <- temp
 	}
-	
+
 	#now gradient of piGSI
+	pos <- (nPBT + nGSI + 1) #position in the gradient vector to assign values
 	if (nPBT > 0){
-		pos <- (nPBT + nGSI + 1) #position in the gradient vector to assign values
 		for(i in 1:nPBT){
 			paramsTemp <- params[pos:(pos + nGSI - 1)]
 			firstLevelTemp <- firstLevel[pos:(pos + nGSI - 1)]
@@ -76,29 +76,33 @@ params_grad <- function(params, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi){
 			}
 		}
 	}
+
 	# print(gradient) #testing
 	return(gradient)
 }
 
 
-#this calculates the gradient with respect to piTot and piGSI
-# 
-# @param piTot vector of piTot proportions
-# @param piGSItemp matrix of piGSI proportions for each PBT group and GSI group (GSI groups fixed at 1)
-# @param nPBT number of PBT groups to estimate
-# @param nGSI number of GSI groups to estimate
-# @param ohnc vector of number of observed (PBT assigned) hatchery fish in each PBT and GSI group (gsi groups should be 0)
-# @param t vector of tag rates for all PBT and GSI groups (gsi groups should be 0)
-# @param utGSI vector of number of un-PBT assigned fish in each GSI group
-# @param ohnc_gsi matrix of counts of fish GSI assigned to various groups
-# 
+#' this calculates the gradient with respect to piTot and piGSI
+#'
+#' @param piTot vector of piTot proportions
+#' @param piGSItemp matrix of piGSI proportions for each PBT group and GSI group (GSI groups fixed at 1)
+#' @param nPBT number of PBT groups to estimate
+#' @param nGSI number of GSI groups to estimate
+#' @param ohnc vector of number of observed (PBT assigned) hatchery fish in each PBT and GSI group (gsi groups should be 0)
+#' @param t vector of tag rates for all PBT and GSI groups (gsi groups should be 0)
+#' @param utGSI vector of number of un-PBT assigned fish in each GSI group
+#' @param ohnc_gsi matrix of counts of fish GSI assigned to various groups
+#'
+#' @keywords internal
+#' @noRd
+#'
 
 test_gradient <- function(piTot, piGSItemp, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi){
 	untag <- 1 - t
-	
+
 	#now calculate the gradient
 	gradient <- rep(0, length(piTot) + nPBT*nGSI)
-	
+
 	#piTot
 	#first, PBT groups observed part
 	if(nPBT > 0) gradient[1:nPBT] <- ohnc[1:nPBT] / piTot[1:nPBT]
@@ -107,15 +111,15 @@ test_gradient <- function(piTot, piGSItemp, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi
 		temp <- 0
 		for(j in 1:nGSI){
 			if(utGSI[j] == 0) next
-			temp <- temp + 
+			temp <- temp +
 				(
 					(utGSI[j] * untag[i] * piGSItemp[i,j]) /
-					sum(untag * piGSItemp[,j] * piTot)	
+					sum(untag * piGSItemp[,j] * piTot)
 				)
 		}
 		gradient[i] <- gradient[i] + temp
 	}
-	
+
 	#piGSI
 	if (nPBT > 0){
 		pos <- (nPBT + nGSI + 1) #position in the gradient vector to assign values
@@ -124,6 +128,7 @@ test_gradient <- function(piTot, piGSItemp, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi
 				temp <- 0
 				temp <- ((utGSI[j] * piTot[i] * untag[i]) /
 					sum(untag * piGSItemp[,j] * piTot))
+				#checking if greater than 0 to prevent dividing 0/0 if 0 is suggested for a piGSI value
 				if(ohnc_gsi[i,j] > 0) temp <- temp + (ohnc_gsi[i,j] / piGSItemp[i,j])
 				gradient[pos] <- temp
 				pos <- pos + 1
@@ -131,5 +136,5 @@ test_gradient <- function(piTot, piGSItemp, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi
 		}
 	}
 	# print(gradient)
-	return(-gradient)
+	return(-gradient) #negative b/c optim minimizes the -log(L)
 }
