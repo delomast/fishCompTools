@@ -65,7 +65,7 @@ head(tags)
 We also have a dataframe named `tags` with the names of the PBT groups (matching the labels in the GenParentHatchery column) and the tag rates (successful genotyping rates) for those groups. 
 
 ## Second, get the estimates
-The likelihood function is defined in the package, and a wrapper in the package calls R's built in `optim` function to maximize the likelihood of the parameters within each strata. There is also a gradient function for this likelihood (currently only when you are using PBT and GSI information and not additional variables) to facilitate usage of gradient based methods. I show here my recommended way of running the optimization. It may occasionally cause R to throw an error, in which case you can troubleshoot (adjusting some of the option for optim can sometimes help), or use the `Nelder-Mead` method, which probably won't give you as good of an estimate, but is more robust. You could also consider using the accounting approach (`scobi_deux`) or the Bayesian approach (`MCpbt`) defined in this package.
+The likelihood function is defined in the package, and a wrapper in the package calls R's built in `optim` function to maximize the likelihood of the parameters within each strata. There is also a gradient function for this likelihood to facilitate usage of gradient based methods. I show here my recommended way of running the optimization. It may occasionally cause R to throw an error, in which case you can troubleshoot (adjusting some of the option for optim can sometimes help), or use the `Nelder-Mead` method, which probably won't give you as good of an estimate, but is more robust. You could also consider using the accounting approach (`scobi_deux`) or the Bayesian approach (`MCpbt`) defined in this package.
 
 
 ```{r}
@@ -150,11 +150,14 @@ colnames(multStratData)[colnames(multStratData) == "Var1"] <- "Sex"
 head(multStratData)
 ```
 
-Then, we use the `MLEwrapper` function as before, but we specify the column name of the categorical variable with the `variableCols = ` option:
+Then, we use the `MLEwrapper` function as before, but we specify the column name of the categorical variable with the `variableCols = ` option. Notice that here we are using a **different** gradient function than before.
 
 ```{r}
-### Note that this chunk of code will be updated when teh gradient function including an additional variable is written
-withVarEstimates <- MLEwrapper(multStratData, tags = tags, GSIcol = "GSI", PBTcol = "GenParentHatchery", strataCol = "Strata", adFinCol = "AdClip", AI = TRUE, optimMethod = "Nelder-Mead", variableCols = "Sex", control = list(maxit=5000))
+#the control option is passed to optim, telling it to run up to 10000 iterations
+#the gr option is passed to optim, telling it to use params_grad as the gradient function
+#the lower option is passed to optim, telling it to use 10^-12 as the minimum value to try for any parameter
+withVarEstimates <- MLEwrapper(multStratData, tags = tags, GSIcol = "GSI", PBTcol = "GenParentHatchery", strataCol = "Strata", adFinCol = "AdClip", AI = TRUE, optimMethod = "L-BFGS-B", variableCols = "Sex", gr=params_grad_var, lower = 10^-12, control = list(maxit=10000))
+
 
 ## now look at the first strata
 print(withVarEstimates[[1]])
