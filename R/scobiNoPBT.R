@@ -158,7 +158,7 @@ scobiNoPBT <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 		#calculate number HNC and wild, if possible
 		if(aiCount > 0 && sum(!is.na(ai_data[,physTagsVariable])) == 0){
 			cat("Warning. No AI fish with data for", physTagsVariable, "in strata", h_hnc_w_estimates[i,1], "\n")
-			cat("Assuming all fish in this strata are wild.\n")
+			cat("Assuming all AI fish in this strata are wild.\n")
 			ai_data[,physTagsVariable] <- "notag"
 			FishData[FishData$Strata == h_hnc_w_estimates[i,1],physTagsVariable] <- "notag" #make change for full dataset that will be used for Hierarchical variables
 		}
