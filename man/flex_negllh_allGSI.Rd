@@ -22,5 +22,9 @@ flex_negllh_allGSI(params, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi)
 \item{ohnc_gsi}{matrix of counts of fish GSI assigned to various groups}
 }
 \description{
-this function does not allow another variable. for that, see \code{flex_negllh_var}
+I expect that most users interested in MLE of composition will be best served by using \code{MLEwrapper},
+which preps data, calls this function, and then returns the results in a nice format. This function calculates the
+likelihood for a given set of parameters, and may be useful to users who want MLE but want more control over how the
+data is used and/or the optimization procedure. This function does not allow another variable. for that,
+see \code{flex_negllh_var}.
 }

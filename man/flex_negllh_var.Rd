@@ -29,5 +29,11 @@ flex_negllh_var(params, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi, utVar,
 \item{nCat}{the numbers of categories in the variable}
 }
 \description{
-more here?
+more here...
+}
+\details{
+I expect that most users interested in MLE of composition will be best served by using \code{MLEwrapper},
+which preps data, calls this function, and then returns the results in a nice format. This function calculates the
+likelihood for a given set of parameters, and may be useful to users who want MLE but want more control over how the
+data is used and/or the optimization procedure.
 }

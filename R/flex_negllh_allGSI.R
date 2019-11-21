@@ -1,7 +1,11 @@
 #' calculate the negative log-likelihood with only PBT and GSI (optional) information
-#' 
-#' this function does not allow another variable. for that, see \code{flex_negllh_var}
-#' 
+#'
+#' I expect that most users interested in MLE of composition will be best served by using \code{MLEwrapper},
+#' which preps data, calls this function, and then returns the results in a nice format. This function calculates the
+#' likelihood for a given set of parameters, and may be useful to users who want MLE but want more control over how the
+#' data is used and/or the optimization procedure. This function does not allow another variable. for that,
+#' see \code{flex_negllh_var}.
+#'
 #' @param params vector of paramaters to optimize
 #' @param nPBT number of PBT groups to estimate
 #' @param nGSI number of GSI groups to estimate
@@ -9,7 +13,8 @@
 #' @param t vector of tag rates for all PBT and GSI groups (gsi groups should be 0)
 #' @param utGSI vector of number of un-PBT assigned fish in each GSI group
 #' @param ohnc_gsi matrix of counts of fish GSI assigned to various groups
-#'  
+#'
+#' @export
 
 flex_negllh_allGSI <- function(params, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi){
 	# first, unpack params
@@ -32,7 +37,7 @@ flex_negllh_allGSI <- function(params, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi){
 		}
 	}
 	piGSItemp <- rbind(piGSItemp, diag(nGSI)) #add GSI groups as fixed 100%
-	
+
 	# now, calculate the log likelihood
 	llh <- 0
 	# first ohnc part
@@ -48,7 +53,7 @@ flex_negllh_allGSI <- function(params, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi){
 			llh <- llh + sum(ohnc_gsi[i,] * log(piGSItemp[i,]))
 		}
 	}
-	
+
 	# returning negative log-likelihood for minimization
 	return(-llh)
 }

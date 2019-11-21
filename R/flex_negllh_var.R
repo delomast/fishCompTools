@@ -1,7 +1,12 @@
 #' calculate the negative log-likelihood with PBT, GSI (optional), and one other categorical variable
-#' 
-#' more here?
-#' 
+#'
+#' more here...
+#'
+#' I expect that most users interested in MLE of composition will be best served by using \code{MLEwrapper},
+#' which preps data, calls this function, and then returns the results in a nice format. This function calculates the
+#' likelihood for a given set of parameters, and may be useful to users who want MLE but want more control over how the
+#' data is used and/or the optimization procedure.
+#'
 #' @param params vector of paramaters to optimize
 #' @param nPBT number of pbt groups to estimate
 #' @param nGSI number of GSI groups to estimate
@@ -12,7 +17,8 @@
 #' @param utVar matrix of numbers of un-PBT assigned fish in each GSI group (row) x category of the variable (column)
 #' @param ohnc_var matrix of counts of PBT-assigned fish in each category (rows are PBT groups)
 #' @param nCat the numbers of categories in the variable
-#'  
+#'
+#' @export
 
 flex_negllh_var <- function(params, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi,
 									 utVar, ohnc_var, nCat){
@@ -72,7 +78,7 @@ flex_negllh_var <- function(params, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi,
 	}
 
 
-	
+
 	# returning negative log-likelihood for minimization
 	return(-llh)
 }

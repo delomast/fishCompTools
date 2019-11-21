@@ -27,7 +27,7 @@ MLEwrapper <- function(trapData, tags, GSIcol, PBTcol, strataCol, adFinCol, AI =
 	varBool <- !is.null(variableCols) #TRUE if variables are used
 
 	# input checking
-	if(varBool && length(variableCols) > 1){
+	if(varBool && length(variableCols) != 1){
 		stop("variableCols must be either NULL or only one variable")
 	}
 
