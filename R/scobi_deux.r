@@ -13,17 +13,18 @@
 #' @param adultData This is the detailed dataset that is used to determine composition. In
 #'  dam escapement, this is the "trap" data. It can either be a dataframe or the path to a
 #'  csv file with a header.
-#' @param windowData This is the dataset that gives the census numbers for each group (such
+#' @param windowData This is the dataset that gives the census numbers for each strata (such
 #'  as time period or location). In dam escapement, this is the "window count" dataset.
-#'  It can either be a dataframe or the path to a csv file with a header. Format is ....
+#'  It can either be a dataframe or the path to a csv file with a header. The first column has the groups
+#'  as listed in the \code{dataGroupVariable} column of the \code{adultData}. The second column is the census
+#'  count for that data group. The third column is the strata that data group belongs to. The purpose of this is to allow
+#'  a user to easily reconfigure groups of observations into different strata.
 #' @param Run This is a prefix that will be appended to all output files.
 #' @param RTYPE This is the type of fish that you want to analyze for the \code{Hierarch_variables}.
 #'  Options are: "clipped", "noclip_H", "wild", representing Ad-clipped hatchery, Ad-intact
 #'  hatchery, and wild fish, respectively.
 #' @param Hierarch_variables These are the variables (column names in \code{adultData}) that you
 #'  want to assess RTYPE for in the order you want them to be assessed.
-#' @param lengthVariable If you are usign the SizeCut option, this is the variable that has the
-#'  numeric lengths.
 #' @param SizeCut Fish less than this value will be put into a "Small" category, and fish greater or equal
 #'  to this value will be put into a "Large" category. This is intended for easy analysis of jacks or
 #'  large and small steelhead.
@@ -48,13 +49,15 @@
 #'  of NA.
 #' @param lengthVariable This is the name of the variable that has numberic lengths if the SizeCut option
 #'  is being used.
-#' @param dataGroupVariable This is the name of the variable that has the sample group that each sample
-#'  belongs to, with the sample groups matching the groups given in the first column of windowData.
+#' @param dataGroupVariable TThis is the name of the variable that has the grouping that each sample
+#'  belongs to for pooling into strata, with the values matching the values given in the first column of windowData.
 #' @param screenOutput This is the name of the file to write all output the would otherwise be printed to
 #'  the console. If not specified, output is printed to the console.
 #' @param spibetr If this is \code{TRUE}, then the composition estimates of the wild fish will be corrected
 #'  to account for the expected number and composition of the unclipped, untagged hatchery fish present in
-#'  the wild sample.
+#'  the wild sample. It this is \code{FALSE}, the total number of wild fish will be reduced in accordance with
+#'  the expected number of uncliipped, untagged hatchery fish, but the composition of the wild fish will not
+#'  be corrected.
 #' @return A string is returned simply stating that the analysis is complete. All of
 #' the output of the function is written to the working directory. These files are:
 #' ....

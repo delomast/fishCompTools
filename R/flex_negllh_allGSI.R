@@ -4,7 +4,8 @@
 #' which preps data, calls this function, and then returns the results in a nice format. This function calculates the
 #' likelihood for a given set of parameters, and may be useful to users who want MLE but want more control over how the
 #' data is used and/or the optimization procedure. This function does not allow another variable. for that,
-#' see \code{flex_negllh_var}.
+#' see \code{flex_negllh_var}. This calculates a simplified version of the negative
+#' log-likelihood (constants removed) for computational efficiency.
 #'
 #' @param params vector of paramaters to optimize
 #' @param nPBT number of PBT groups to estimate
