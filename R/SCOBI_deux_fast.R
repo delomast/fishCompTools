@@ -1,4 +1,4 @@
-#' Uses PBT assignments and other data to estimate group composition
+#' Uses PBT assignments and other data to estimate group composition by an "accounting- style" method
 #'
 #' \code{SCOBI_deux_fast} Uses PBT assignments and tag rates to calculate composition
 #' estimates and adjust estimates based on the tag rates. Confidence intervals are
@@ -6,6 +6,22 @@
 #' than \code{SCOBI_deux} when you have multiple \code{Hierarch_variables}, but can not
 #' handle high levels of missing data (it will throw an error if you try).
 #'
+#' This function uses the "accounting-style" method (Ac) described by Delomas and Hess (in review) to estimate
+#' composition of various groups when using PBT with tag rates less than 100%. This function is set up to
+#' provide estimates for three groups of fish, based on fishery managment of Salmonids: Ad-clipped, Ad-intact
+#' hatchery, and Ad-intact wild. The paper describes how the data for all Ad-intact fish sampled is used to
+#' estimate the composition of Ad-intact hatchery and wild fish. If both Ad-clipped and Ad-intace fish are
+#' present in the input dataset, the total number of Ad-clipped fish is estimated using the ratio of Ad-clipped
+#' fish to Ad-intact fish in the input data. If the \code{pbtGroupVariable} is included in the
+#' \code{Hierarch_variables} option, then the composition of the Ad-clipped fish is calculated analagously
+#' to the method described in the paper for the Ad-intact hatchery and wild fish, but the wild group is now
+#' the fish which are Unassigned by PBT. If the \code{pbtGroupVariable} is NOT included in the
+#' \code{Hierarch_variables} option, then the estimates are simply made by calculating the relative numbers of
+#' observed fich in each category of the \code{Hierarch_variables} option (ie, tag rates are NOT used). This is
+#' because it is assumed the sampled PBT Untagged fish that are Ad-clipped are still identified as being
+#' Ad-clipped, and so can be used to estimate composition.
+#' This function is written to have an a user interface similar to that of a function written for a similar
+#' purpose in a different package by different authors, \code{SCOBI}.
 #'
 #' @param adultData This is the detailed dataset that is used to determine composition. In
 #'  dam escapement, this is the "trap" data. It can either be a dataframe or the path to a
@@ -54,7 +70,8 @@
 #'  to account for the expected number and composition of the unclipped, untagged hatchery fish present in
 #'  the wild sample. It this is \code{FALSE}, the total number of wild fish will be reduced in accordance with
 #'  the expected number of uncliipped, untagged hatchery fish, but the composition of the wild fish will not
-#'  be corrected.
+#'  be corrected. When \code{TRUE}, the method is the "Ac" method described in the paper. When \code{FALSE},
+#'  the method is the "TotEx" method described in the paper.
 #' @return A string is returned simply stating that the analysis is complete. All of
 #' the output of the function is written to the working directory. These files are:
 #' ....

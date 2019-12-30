@@ -35,5 +35,6 @@ more here...
 I expect that most users interested in MLE of composition will be best served by using \code{MLEwrapper},
 which preps data, calls this function, and then returns the results in a nice format. This function calculates the
 likelihood for a given set of parameters, and may be useful to users who want MLE but want more control over how the
-data is used and/or the optimization procedure.
+data is used and/or the optimization procedure. This calculates a simplified version of the negative
+log-likelihood (constants removed) for computational efficiency.
 }
