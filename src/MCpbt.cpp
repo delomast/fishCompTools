@@ -35,7 +35,7 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
                           Rcpp::NumericMatrix pi_gsiInitial, Rcpp::NumericMatrix prior_pi_gsi,
                           Rcpp::NumericMatrix ohnc_gsi,
                           Rcpp::List values, Rcpp::List pi_VInitial, Rcpp::List pi_Vohnc, Rcpp::List pi_Vprior, //pi_V parameters
-                          Rcpp::NumericMatrix v_ut, 
+                          Rcpp::NumericMatrix v_ut,
                           Rcpp::NumericVector initZ, Rcpp::NumericVector t, //z parameters
                           Rcpp::List valuesOth, Rcpp::List pi_VInitialOth, Rcpp::List pi_VohncOth, Rcpp::List pi_VpriorOth, //pi_VOth parameters
                           Rcpp::NumericMatrix v_utOth
@@ -48,10 +48,10 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 	if(thin < 1) Rcpp::stop("thin must be 1 or greater.");
 
 	int NumResults = (iter - burnIn) / thin; //number of results to store
-	
+
 	if (NumResults < 1) Rcpp::stop("iter, burnIn, and thin parameters lead to no results being recorded.");
 
-	
+
 	//set quantities frequently used
 	int nGroups = groups.size(); //number of groups in piTot, including wild/unassigned
 	int nGSI = nGroups - nPBT;
@@ -63,7 +63,7 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 		untagRates[i] = 1 - t[i];
 		groupsC[i] = groups[i];
 	}
-	vector <vector <double>> priorPlusOhnc_pi_gsi;
+	vector <vector <double> > priorPlusOhnc_pi_gsi;
 	for(int i=0; i<nPBT; i++){
 		vector <double> tempVec (nGSI, 0);
 		for(int j=0; j<nGSI; j++){
@@ -71,26 +71,26 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 		}
 		priorPlusOhnc_pi_gsi.push_back(tempVec);
 	}
-	
+
 	int tempCol; //stores position of vector to take a value from
 	int tempInt; //temporary counting value
-	
-	
+
+
 	//define temporary variables used in calculations
 	vector <double> piTot_tempAlphas (nGroups, 0);
 	vector <double> tempZprobs (nGroups, 0);
 	vector <double> pi_gsi_tempAlphas (nGSI, 0);
-	
+
 	//define main variables and set initial values
 	vector <double> piTot (nGroups, 0); //proportions of each group in the population
 	vector <int> oUT (nGroups,0); //number of untagged fish in each group
 	for(int i=0; i < nGroups; i++){
 		piTot[i] = piTotInitial[i];
 		oUT[i] = oUTInitial[i];
-		
+
 	}
 
-	vector <vector <double>> pi_gsi;
+	vector <vector <double> > pi_gsi;
 	for(int i=0; i < nGroups; i++){
 		vector <double> tempVec (nGSI, 0);
 		for(int j=0; j < nGSI; j++){
@@ -98,13 +98,13 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 		}
 		pi_gsi.push_back(tempVec);
 	}
-	
+
 	vector <int> z; //declare vector of z's
 	for(int i=0, max=initZ.size(); i < max; i++){
 		z.push_back(initZ[i]); //initialize with given values
 	}
 	int nZ = z.size(); //number of untagged fish
-	
+
 	/*now for the variables
 	 we need:
 	 	a structure to be able to loop through the variables - 0:nVar
@@ -115,13 +115,13 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 
 	  		a prior for each group - combination of prior and observed (ohnc) values
 	 Instead of a specific structure to loop through, just keep the order the same for all
-	 */ 
+	 */
 	int nVar = values.size(); //number of variables
-	vector <vector <int>> valuesC (nVar); //possible values of variables represented as (positive) ints, (with -9 in data indicates missing)
-	vector <vector <vector <double>>> pi_V (nVar); //a list each variable, with proportions of each group for that variable
-	vector <vector <double>> tempCounts (nVar); //temporary counts for each variable - used in calculations - using double b/c prior added to it
+	vector <vector <int> > valuesC (nVar); //possible values of variables represented as (positive) ints, (with -9 in data indicates missing)
+	vector <vector <vector <double> > > pi_V (nVar); //a list each variable, with proportions of each group for that variable
+	vector <vector <double> > tempCounts (nVar); //temporary counts for each variable - used in calculations - using double b/c prior added to it
 
-	vector <vector <vector <double>>> priorPlusOhncV (nVar); //creating prior plus observed PBT assigned
+	vector <vector <vector <double> > > priorPlusOhncV (nVar); //creating prior plus observed PBT assigned
 	for(int i=0; i<nVar; i++){
 		//add values to valuesC
 		Rcpp::NumericVector tempV = values[i]; //pull NumericVector out of the list of the possible values for a variable
@@ -146,16 +146,16 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 			priorPlusOhncV[i].push_back(tempVecPrior); //add prior + ohnc values for variable i and group j
 		}
 	}
-	
+
 	/* Now we are creating the same containers for the "other" variables (not used in clustering) that we did for
 	 * the main pi_V variables.
 	 */
 	int nVarOth = valuesOth.size(); //number of variables
-	vector <vector <int>> valuesCOth (nVarOth); //possible values of variables represented as (positive) ints, (with -9 in data indicates missing)
-	vector <vector <vector <double>>> pi_VOth (nVarOth); //a list each variable, with proportions of each group for that variable
-	vector <vector <double>> tempCountsOth (nVarOth); //temporary counts for each variable - used in calculations - using double b/c prior added to it
+	vector <vector <int> > valuesCOth (nVarOth); //possible values of variables represented as (positive) ints, (with -9 in data indicates missing)
+	vector <vector <vector <double> > > pi_VOth (nVarOth); //a list each variable, with proportions of each group for that variable
+	vector <vector <double> > tempCountsOth (nVarOth); //temporary counts for each variable - used in calculations - using double b/c prior added to it
 
-	vector <vector <vector <double>>> priorPlusOhncVOth (nVarOth); //creating prior plus observed PBT assigned
+	vector <vector <vector <double> > > priorPlusOhncVOth (nVarOth); //creating prior plus observed PBT assigned
 	for(int i=0; i<nVarOth; i++){
 		//add values to valuesC
 		Rcpp::NumericVector tempV = valuesOth[i]; //pull NumericVector out of the list of the possible values for a variable
@@ -180,17 +180,17 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 			priorPlusOhncVOth[i].push_back(tempVecPrior); //add prior + ohnc values for variable i and group j
 		}
 	}
-	
-	
-	
-	
+
+
+
+
 	//////////////////////////////////
 	//allocate result storage
 	int currentEntry = 0; //keep track of what entry to record next
-	
+
 	Rcpp::NumericMatrix r_PiTot(NumResults, nGroups); //pi_Tot unclipped
 	Rcpp::NumericMatrix r_Z(NumResults, nZ); //z
-	
+
 	/* For r_pi_gsi structure is a matrix with rows beign interations and columns being
 	 * group1 gsi1, group1 gsi2, ..., group2 gsi1, ..., groupN gsiK
 	 * so number of rows is number of recorded iterations
@@ -199,30 +199,30 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 	 * In order to make future changes easy if we do want to update them as well as
 	 * to make post-processing of the data easier when looping over the pi_gsi estimates
 	 */
-	
+
 	Rcpp::NumericMatrix r_pi_gsi (NumResults, (nGSI * nGroups)); //pi_gsi
-	
+
 	/* For r_pi_V, structure is the same as for r_pi_gsi, except there
 	 * is one NumericMatrix for each variable. These NumericMatrices are
 	 * stored in a vector, and then converted to a list to be output back
 	 * to R
 	 */
-	
+
 	vector <Rcpp::NumericMatrix> r_pi_V (nVar); //pi_V
 	for (int i=0; i<nVar;i++){
 		r_pi_V[i] = Rcpp::NumericMatrix(NumResults, (nGroups * valuesC[i].size()));
 	}
-	
+
 	//the same strategy for pi_VOth as for pi_V
 	vector <Rcpp::NumericMatrix> r_pi_VOth (nVarOth); //pi_V
 	for (int i=0; i<nVarOth;i++){
 		r_pi_VOth[i] = Rcpp::NumericMatrix(NumResults, (nGroups * valuesCOth[i].size()));
 	}
-	
+
 	// end allocate result storage
 	///////////////////////////////////
-	
-	
+
+
 	////////////////////////////////////////////////////
 	//cycle through iterations
 	int thin2 = 1;
@@ -230,13 +230,13 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 		if(r == burnIn) thin2 = thin; //this runs the number of burnin iterations, then runs enough to get the specified number of recordings
 		//cycle through thinning reps between recording values
 		for (int th=0; th < thin2; th++){
-			
+
 			// sample from pi_tot
 			for(int i=0; i < nGroups; i++){ //calculating the alphas of the Dirichlet
 				piTot_tempAlphas[i] = priorPlusOhnc[i] + oUT[i];
 			}
 			piTot = randDirich(piTot_tempAlphas, rgPoint);
-			
+
 			// sample from pi_v's
 			for(int v=0; v < nVar; v++){ //cycle through variables
 				for(int g=0; g < nGroups; g++){ //cycle through groups
@@ -256,7 +256,7 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 					pi_V[v][g] = randDirich(tempCounts[v], rgPoint);
 				}
 			}
-			
+
 			// NOTE- when adding in accounting for GSI variability, priorPlusOhnc_pi_gsi will
 			//   have to be calculated in each iteration
 			// sample from pi_gsi's - for PBT groups only
@@ -270,11 +270,11 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 					pi_gsi_tempAlphas[j] = priorPlusOhnc_pi_gsi[i][j] + tempInt;
 				}
 				pi_gsi[i] = randDirich(pi_gsi_tempAlphas, rgPoint);
-				
+
 			}
-			
-			
-			
+
+
+
 			// sample from z's
 			for(int i=0; i < nZ; i++){ //for each z
 				//first assign just the piTot and tag rates to the probs
@@ -293,7 +293,7 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 				for(int g=0; g < nGroups; g++){
 					tempZprobs[g] *= pi_gsi[g][tempCol];
 				}
-				
+
 				//now refine probs using pi_V and the observed variables - if they are present
 				for(int v=0; v < nVar; v++){
 					tempCol = 0;
@@ -312,10 +312,10 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 				}
 				// now sample z for that individual
 				z[i] = sampleC(groupsC, tempZprobs, rgPoint);
-				
+
 			}
-			
-			
+
+
 			// calculate oUT for ease of later steps
 			oUT.assign(nGroups, 0); //clear vector
 			for(int i=0; i < nZ; i++){ //for each z
@@ -326,7 +326,7 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 					}
 				}
 			}
-			
+
 			//sample from variables that are not used in the "clustering" of individuals to groups
 			//pi_VOth
 			for(int v=0; v < nVarOth; v++){ //cycle through variables
@@ -347,9 +347,9 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 					pi_VOth[v][g] = randDirich(tempCountsOth[v], rgPoint);
 				}
 			}
-			
+
 		} //end of thinning loop
-		
+
 		//record values
 		if(r >= burnIn){
 			//piTot
@@ -387,11 +387,11 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 			}
 			currentEntry++;
 		}
-		
+
 		//check user interrupt every so often
 		if (r % 200 == 0) Rcpp::checkUserInterrupt();
 	}
-	
+
 
 	//organize output to return to R
 	//turn r_pi_V into a Rcpp::List of NumericMatrices instead of a vector
@@ -404,7 +404,7 @@ Rcpp::List MCpbt(int iter, int burnIn, int thin, unsigned int seed, //overall pa
 	for(int i=0; i<nVarOth; i++){
 		r_pi_VOth_out[i] = r_pi_VOth[i];
 	}
-	
+
 	Rcpp::List outputList = Rcpp::List::create(Rcpp::Named("piTot") = r_PiTot,
                                             Rcpp::Named("z") = r_Z,
                                             Rcpp::Named("piGSI") = r_pi_gsi,
