@@ -916,7 +916,9 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 			}
 			if(nrow(data_boot) < 1){
 				cat("\nNo fish present in the dataset of the RTYPE that you chose for the hierarchical analysis. Writing all zeros for this iteration.\n")
-				boot_hier[[i]][,b] <- 0
+				for(i in 1:length(Hierarchical_decomposition_boot)){
+					boot_hier[[i]][,b] <- 0
+				}
 				next
 			}
 
