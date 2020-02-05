@@ -771,7 +771,7 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 						props[bool_temp,props_col] <- NA
 						cat("\nWarning. There are no fish in")
 						print(last_estim[j,1:(props_col-2)], row.names = FALSE)
-						cat("with data for", factor, "\nUsing the mean composition for all other fish in this strata to estimate this group.\n")
+						cat("with data for", last_estim[j,1:(props_col-1)], "\nUsing the mean composition for all other fish in this strata to estimate this group.\n")
 					}
 				}
 
