@@ -770,8 +770,9 @@ SCOBI_deux <- function(adultData = NULL, windowData = NULL, Run = "output", RTYP
 						replace_NA_2 <- c(replace_NA_2, j)
 						props[bool_temp,props_col] <- NA
 						cat("\nWarning. There are no fish in")
-						print(last_estim[j,1:(props_col-2)], row.names = FALSE)
-						cat("with data for", last_estim[j,1:(props_col-1)], "\nUsing the mean composition for all other fish in this strata to estimate this group.\n")
+						print(last_estim[j,1:props_col_2], row.names = FALSE)
+						cat("with complete data.")
+						cat("\nUsing the mean composition for all other fish in this strata to estimate this group.\n")
 					}
 				}
 
