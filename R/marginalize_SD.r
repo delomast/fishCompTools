@@ -112,7 +112,7 @@ marginalize_SD <- function(estimatesFile = NA, bootHier = NA, marginalize = "Gen
 			colnames(CI_hier)[1] <- colnames(totals_for_run)[1]
 		}
 		# output CIs
-		write.table(CI_hier, paste0("Marginalized_", paste(marginalize, collapse = "_"), "_CI_", gsub(".+_Hier_", "", estimatesFile)), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+		write.table(CI_hier, paste0("Marginalized_", paste(marginalize, collapse = "_"), "_CI_", gsub("Hier_", "", estimatesFile)), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
 	}
 
 	return("Marginalizing complete")
