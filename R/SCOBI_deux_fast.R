@@ -787,7 +787,9 @@ SCOBI_deux_fast <- function(adultData = NULL, windowData = NULL, Run = "output",
 							props[bool_temp,props_col] <- NA
 							cat("\nWarning. There are no fish in")
 							print(last_estim[j,1:(props_col_2-1)], row.names = FALSE)
-							cat("with data for", last_estim[j,1:props_col_2], "\nAttempting to use the composition of this group across all other strata to estimate this group.")
+							cat("with data for")
+							print(last_estim[j,props_col_2], , row.names = FALSE)
+							cat("\nAttempting to use the composition of this group across all other strata to estimate this group.")
 							cat("if you recieve an error, you will need to use the slower version of the function for this analysis.\n")
 						}
 					}
