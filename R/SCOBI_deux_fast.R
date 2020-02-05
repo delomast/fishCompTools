@@ -348,7 +348,9 @@ SCOBI_deux_fast <- function(adultData = NULL, windowData = NULL, Run = "output",
 		max_expand <- matrix(nrow = 0, ncol = 2)
 		for(s in unique(FishData$Strata)){
 			max_expand <- rbind(max_expand, c(s,
-				sum(FishData$Strata == s & FishData[,adClipVariable] == "AI" & (is.na(FishData[,physTagsVariable]) | FishData[,physTagsVariable] == "notag") & FishData[,pbtGroupVariable] == "Unassigned")
+				sum(FishData$Strata == s & FishData[,adClipVariable] == "AI" &
+				    	(is.na(FishData[,physTagsVariable]) | FishData[,physTagsVariable] == "notag") &
+				    	!is.na(FishData[,pbtGroupVariable]) & FishData[,pbtGroupVariable] == "Unassigned")
 			))
 		}
 	} else if (RTYPE == "wild"){
@@ -929,7 +931,9 @@ SCOBI_deux_fast <- function(adultData = NULL, windowData = NULL, Run = "output",
 				boot_max_expand <- matrix(nrow = 0, ncol = 2)
 				for(s in unique(data_boot$Strata)){
 					boot_max_expand <- rbind(boot_max_expand, c(s,
-						sum(data_boot$Strata == s & data_boot[,adClipVariable] == "AI" & (is.na(data_boot[,physTagsVariable]) | data_boot[,physTagsVariable] == "notag") & data_boot[,pbtGroupVariable] == "Unassigned")
+						sum(data_boot$Strata == s & data_boot[,adClipVariable] == "AI" &
+						    	(is.na(data_boot[,physTagsVariable]) | data_boot[,physTagsVariable] == "notag") &
+						    	!is.na(data_boot[,pbtGroupVariable]) & data_boot[,pbtGroupVariable] == "Unassigned")
 					))
 				}
 				data_boot <- data_boot[data_boot[,adClipVariable] == "AI" & ((!is.na(data_boot[,physTagsVariable]) & data_boot[,physTagsVariable] == "tag") | (!is.na(data_boot[,pbtGroupVariable]) & data_boot[,pbtGroupVariable] != "Unassigned")),]
