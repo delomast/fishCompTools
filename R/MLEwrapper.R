@@ -57,7 +57,7 @@ MLEwrapper <- function(trapData, tags, GSIcol, PBTcol, strataCol, adFinCol, AI =
 		ohnc_var <- data.frame() #define in case no PBT groups
 		if(varBool){
 			nCat <- length(input$values[[1]])
-			if(nPBT > 0) ohnc_var <- input$pi_Vohnc[[1]][1:nPBT,]
+			if(nPBT > 0) ohnc_var <- input$pi_Vohnc[[1]][1:nPBT, ,drop = FALSE]
 			utVar <- matrix(0, nrow = nGSI, ncol = nCat)
 			for(v in 1:nCat){
 				val <- input$values[[1]][v]
