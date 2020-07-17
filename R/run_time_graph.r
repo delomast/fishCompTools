@@ -14,10 +14,13 @@
 #'  window count file) for that day and the second column is the count on that day. Each consecutive day should be a
 #'  new row with the first day being the first row and the last day being the last row. The group will be repeated once for
 #'  each day within that group with the count for that particular day.
+#' @param estimTotalsFile The path to the "Estim_Total" file that you want to break into daily counts and (optionally) make a graph.
+#'   This can also be a character vector to multiple files.
 #' @param makePlot If TRUE, a pdf will be saved in the working directory of a run timing plot.
 #' @export
 
-run_time_graph <- function(windowData = NULL, Run = "output", dailyCountFile = NULL, makePlot = FALSE)
+run_time_graph <- function(windowData = NULL, Run = "output", dailyCountFile = NULL,
+					  estimTotalsFile = NULL, makePlot = FALSE)
 
 {
 
@@ -120,10 +123,6 @@ run_time_graph <- function(windowData = NULL, Run = "output", dailyCountFile = N
 		cat("\nError: no rearing file found, will not make a run timing distribution for rearing origin fish.\n")
 	}
 
-	#get hier_variable output files
-	hier_var <- files[grepl(paste0("^", Run,"_Estim_Totals_Hier_"), files) & grepl(".txt$", files)]
-	cat("\nFound", length(hier_var), "file(s) for hierarchical variables to make run timining distributions for.\n")
-
 	# make rearing if present
 	#### there shouldn't be more than one rearing file found based on the regex used above, but this makes it easy
 	#### to change the regex in the future to allow more than one
@@ -168,7 +167,7 @@ run_time_graph <- function(windowData = NULL, Run = "output", dailyCountFile = N
 			daily_rearing_out <- cbind(daily_counts[,1], 1:nrow(daily_rearing), daily_rearing)
 			colnames(daily_rearing_out)[1:2] <- c("strata", "timestep")
 			#output table of daily counts for user to graph with more flexibility
-			write.table(daily_rearing_out, paste0(Run, "_daily_counts_Rearing.txt"), col.names = T, row.names = F, quote = F, sep = "\t")
+			write.table(daily_rearing_out, paste0(Run, "_daily_counts_Rearing.txt"), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
 			#output graph if selected
 			if (makePlot){
 				make_plot(daily_rearing_out, paste0(Run, "plot_Rearing"))
@@ -177,10 +176,10 @@ run_time_graph <- function(windowData = NULL, Run = "output", dailyCountFile = N
 	}	#end of if length rearing file
 
 	# make hierarch if present
-	if(length(hier_var) >= 1){
-		for (file in hier_var){
+	if(length(estimTotalsFile) >= 1){
+		for (file in estimTotalsFile){
 			# load data
-			temp_data <- read.table(file, header = T, sep = "\t", colClasses = "character")
+			temp_data <- read.table(file, header = TRUE, sep = "\t", colClasses = "character")
 			num_cols <- ncol(temp_data)
 			#make counts numeric, but keep everything else as character
 			temp_data[,num_cols] <- as.numeric(temp_data[,num_cols])
@@ -207,11 +206,10 @@ run_time_graph <- function(windowData = NULL, Run = "output", dailyCountFile = N
 			daily_types_out <- cbind(daily_counts[,1], 1:nrow(daily_types), daily_types)
 			colnames(daily_types_out)[1:2] <- c("strata", "timestep")
 			#output table of daily counts for user to graph with more flexibility
-			var_name <- gsub("^.+Hier_", "", file)
-			write.table(daily_types_out, paste0(Run, "_daily_counts_", var_name), col.names = T, row.names = F, quote = F, sep = "\t")
+			write.table(daily_types_out, paste0(estimTotalsFile, "_daily_counts.txt"), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
 			#output graph
 			if (makePlot){
-				make_plot(daily_types_out, paste0(Run, "_plot_", gsub(".txt", "", var_name)))
+				make_plot(daily_types_out, paste0(estimTotalsFile, "_plot"))
 			}
 		}
 	}
