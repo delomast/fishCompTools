@@ -4,13 +4,25 @@
 \alias{SCOBI_deux_fast}
 \title{Uses PBT assignments and other data to estimate group composition by an "accounting- style" method}
 \usage{
-SCOBI_deux_fast(adultData = NULL, windowData = NULL, Run = "output",
-  RTYPE = "wild", Hierarch_variables = NULL, SizeCut = NULL,
-  alph = 0.1, B = 5000, writeBoot = FALSE, pbtRates = NULL,
-  adClipVariable = "AdClip", physTagsVariable = "PhysTag",
-  pbtGroupVariable = "GenParentHatchery", lengthVariable = "LGDFLmm",
-  dataGroupVariable = "WeekNumber", screenOutput = NULL,
-  spibetr = TRUE)
+SCOBI_deux_fast(
+  adultData = NULL,
+  windowData = NULL,
+  Run = "output",
+  RTYPE = "wild",
+  Hierarch_variables = NULL,
+  SizeCut = NULL,
+  alph = 0.1,
+  B = 5000,
+  writeBoot = FALSE,
+  pbtRates = NULL,
+  adClipVariable = "AdClip",
+  physTagsVariable = "PhysTag",
+  pbtGroupVariable = "GenParentHatchery",
+  lengthVariable = "LGDFLmm",
+  dataGroupVariable = "WeekNumber",
+  screenOutput = NULL,
+  spibetr = TRUE
+)
 }
 \arguments{
 \item{adultData}{This is the detailed dataset that is used to determine composition. In

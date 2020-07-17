@@ -5,8 +5,13 @@
 \title{This function uses the input created by \code{prepMultStrataPropClip} to estimate the
 proportion of fish that are clipped for each strata.}
 \usage{
-estimStrataPropClip(prepClipData, NumResults, seed = NA, priors = NA,
-  verbose = TRUE)
+estimStrataPropClip(
+  prepClipData,
+  NumResults,
+  seed = NA,
+  priors = NA,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{prepClipData}{the output of prepMultStrataPropClip}

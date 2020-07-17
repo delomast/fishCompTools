@@ -4,8 +4,13 @@
 \alias{run_time_graph}
 \title{Making run-timing graphs from output of \code{SCOBI_deux}}
 \usage{
-run_time_graph(windowData = NULL, Run = "output",
-  dailyCountFile = NULL, makePlot = FALSE)
+run_time_graph(
+  windowData = NULL,
+  Run = "output",
+  dailyCountFile = NULL,
+  estimTotalsFile = NULL,
+  makePlot = FALSE
+)
 }
 \arguments{
 \item{windowData}{This is the exact same \code{windowData} input that you used when you ran \code{SCOBI_deux}.}
@@ -19,6 +24,9 @@ unit for graphing. This csv should have two columns, the first column is the gro
 window count file) for that day and the second column is the count on that day. Each consecutive day should be a
 new row with the first day being the first row and the last day being the last row. The group will be repeated once for
 each day within that group with the count for that particular day.}
+
+\item{estimTotalsFile}{The path to the "Estim_Total" file that you want to break into daily counts and (optionally) make a graph.
+This can also be a character vector to multiple files.}
 
 \item{makePlot}{If TRUE, a pdf will be saved in the working directory of a run timing plot.}
 }

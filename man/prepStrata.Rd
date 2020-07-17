@@ -4,10 +4,22 @@
 \alias{prepStrata}
 \title{This function prepares data to run multiple strata}
 \usage{
-prepStrata(trapData, tags, GSIcol, PBTcol, strataCol, variableCols = c(),
-  variableColsOth = c(), adFinCol, AI = TRUE, GSIgroups = NA,
-  variableValues = NA, variableValuesOth = NA, symPrior = 0.5,
-  verbose = TRUE)
+prepStrata(
+  trapData,
+  tags,
+  GSIcol,
+  PBTcol,
+  strataCol,
+  variableCols = c(),
+  variableColsOth = c(),
+  adFinCol,
+  AI = TRUE,
+  GSIgroups = NA,
+  variableValues = NA,
+  variableValuesOth = NA,
+  symPrior = 0.5,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{trapData}{dataframe with data for fish sampled from one strata - trap data for dam escapement}

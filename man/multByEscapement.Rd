@@ -4,8 +4,16 @@
 \alias{multByEscapement}
 \title{Multiplies escapement estimates by composition estimates}
 \usage{
-multByEscapement(prepData, mainRes, clipRes = NA, popSizes,
-  verbose = TRUE, writeSummary = TRUE, prefix = "", alpha = 0.1)
+multByEscapement(
+  prepData,
+  mainRes,
+  clipRes = NA,
+  popSizes,
+  verbose = TRUE,
+  writeSummary = TRUE,
+  prefix = "",
+  alpha = 0.1
+)
 }
 \arguments{
 \item{prepData}{the same \code{prepData} used as input for \code{estimStrataMCpbt}}

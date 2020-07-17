@@ -4,11 +4,21 @@
 \alias{scobiNoPBT}
 \title{generates estiamtes and CIs usings census count and trap data without any PBT}
 \usage{
-scobiNoPBT(adultData = NULL, windowData = NULL, Run = "output",
-  RTYPE = "wild", Hierarch_variables = NULL, SizeCut = NULL,
-  alph = 0.1, B = 5000, writeBoot = FALSE,
-  adClipVariable = "AdClip", physTagsVariable = "PhysTag",
-  lengthVariable = "LGDFLmm", dataGroupVariable = "WeekNumber")
+scobiNoPBT(
+  adultData = NULL,
+  windowData = NULL,
+  Run = "output",
+  RTYPE = "wild",
+  Hierarch_variables = NULL,
+  SizeCut = NULL,
+  alph = 0.1,
+  B = 5000,
+  writeBoot = FALSE,
+  adClipVariable = "AdClip",
+  physTagsVariable = "PhysTag",
+  lengthVariable = "LGDFLmm",
+  dataGroupVariable = "WeekNumber"
+)
 }
 \value{
 something

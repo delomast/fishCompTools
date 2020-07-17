@@ -4,8 +4,18 @@
 \alias{flex_negllh_var}
 \title{calculate the negative log-likelihood with PBT, GSI (optional), and one other categorical variable}
 \usage{
-flex_negllh_var(params, nPBT, nGSI, ohnc, t, utGSI, ohnc_gsi, utVar,
-  ohnc_var, nCat)
+flex_negllh_var(
+  params,
+  nPBT,
+  nGSI,
+  ohnc,
+  t,
+  utGSI,
+  ohnc_gsi,
+  utVar,
+  ohnc_var,
+  nCat
+)
 }
 \arguments{
 \item{params}{vector of paramaters to optimize}

@@ -4,11 +4,20 @@
 \alias{generatePBTGSIdata}
 \title{This function simulates data for one strata.}
 \usage{
-generatePBTGSIdata(sampRate = 0.1, censusSize = 3000,
-  relSizePBTgroups = 1, tagRates = 0.8, obsTagRates = tagRates,
-  physTagRates = 0, true_clipped = 0.5, true_noclip_H = 0.2,
-  true_wild = 0.3, relSizeGSIgroups = 1, PBT_GSI_calls = 1,
-  varMatList = NA)
+generatePBTGSIdata(
+  sampRate = 0.1,
+  censusSize = 3000,
+  relSizePBTgroups = 1,
+  tagRates = 0.8,
+  obsTagRates = tagRates,
+  physTagRates = 0,
+  true_clipped = 0.5,
+  true_noclip_H = 0.2,
+  true_wild = 0.3,
+  relSizeGSIgroups = 1,
+  PBT_GSI_calls = 1,
+  varMatList = NA
+)
 }
 \arguments{
 \item{sampRate}{the probability of sampling an individual in the population}

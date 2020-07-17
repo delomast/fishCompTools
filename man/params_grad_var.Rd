@@ -5,8 +5,7 @@
 \title{this calculates the gradient with respect to the params being optimized when PBT,
 GSI and another variable are used}
 \usage{
-params_grad_var(params, nPBT, nGSI, ohnc, t, ohnc_gsi, utVar, ohnc_var,
-  nCat)
+params_grad_var(params, nPBT, nGSI, ohnc, t, ohnc_gsi, utVar, ohnc_var, nCat)
 }
 \arguments{
 \item{params}{vector of paramaters to optimize}

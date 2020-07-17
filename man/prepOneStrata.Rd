@@ -4,10 +4,22 @@
 \alias{prepOneStrata}
 \title{This function takes data as a dataframe with one row per observation and prepares it for one strata for MCpbt}
 \usage{
-prepOneStrata(trapData, tags, GSIcol, PBTcol, variableCols = c(),
-  variableColsOth = c(), adFinCol, AI = TRUE, verbose = TRUE,
-  GSIgroups = NA, variableValues = NA, variableValuesOth = NA,
-  strataName = NA, symPrior = 0.5)
+prepOneStrata(
+  trapData,
+  tags,
+  GSIcol,
+  PBTcol,
+  variableCols = c(),
+  variableColsOth = c(),
+  adFinCol,
+  AI = TRUE,
+  verbose = TRUE,
+  GSIgroups = NA,
+  variableValues = NA,
+  variableValuesOth = NA,
+  strataName = NA,
+  symPrior = 0.5
+)
 }
 \arguments{
 \item{trapData}{dataframe with data for fish sampled from one strata - trap data for dam escapement}

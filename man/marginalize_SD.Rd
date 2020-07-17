@@ -4,8 +4,12 @@
 \alias{marginalize_SD}
 \title{Produce estimates and CIs after marginalizing out a given variable from the output of \code{SCOBI_deux}}
 \usage{
-marginalize_SD(estimatesFile = NA, bootHier = NA,
-  marginalize = "GenParentHatchery", alph = 0.1)
+marginalize_SD(
+  estimatesFile = NA,
+  bootHier = NA,
+  marginalize = "GenParentHatchery",
+  alph = 0.1
+)
 }
 \arguments{
 \item{estimatesFile}{is the Scobi-Deux output "Estim_Totals" or "Estim_Grand_Totals" file that you

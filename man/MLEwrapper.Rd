@@ -4,8 +4,18 @@
 \alias{MLEwrapper}
 \title{Find maximum likelihood estimates for composition}
 \usage{
-MLEwrapper(trapData, tags, GSIcol, PBTcol, strataCol, adFinCol,
-  AI = TRUE, optimMethod = "Nelder-Mead", variableCols = NULL, ...)
+MLEwrapper(
+  trapData,
+  tags,
+  GSIcol,
+  PBTcol,
+  strataCol,
+  adFinCol,
+  AI = TRUE,
+  optimMethod = "Nelder-Mead",
+  variableCols = NULL,
+  ...
+)
 }
 \arguments{
 \item{trapData}{a dataframe with a rwo for each individual and columns for GSI assignment, PBT assignment, etc.}
