@@ -361,7 +361,7 @@ SCOBI_deux_fast <- function(adultData = NULL, windowData = NULL, Run = "output",
 		} else {
 			spibetr_data <- NULL
 		}
-		hierarch_data <- hierarch_data[hierarch_data[,adClipVariable] == "AI" & (is.na(hierarch_data[,physTagsVariable]) | hierarch_data[,physTagsVariable] == "notag") & hierarch_data[,pbtGroupVariable] == "Unassigned",]
+		hierarch_data <- hierarch_data[hierarch_data[,adClipVariable] == "AI" & (is.na(hierarch_data[,physTagsVariable]) | hierarch_data[,physTagsVariable] == "notag") & !is.na(hierarch_data[,pbtGroupVariable]) & hierarch_data[,pbtGroupVariable] == "Unassigned",]
 
 	} else {
 		stop("Unrecognized RTYPE. Must be one of: \"clipped\", \"noclip_h\", \"wild\"\n")
